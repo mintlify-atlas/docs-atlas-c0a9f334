@@ -1,0 +1,104 @@
+---
+title: "Performance Tips for Esquina Shortcodes Plugin"
+sidebarTitle: "Performance"
+description: "Optimise page load speed when using the Esquina Shortcodes Plugin with caching, appropriate max and batch values, and WordPress full-page caching."
+---
+
+The Esquina Shortcodes Plugin is built with performance in mind: API results are cached, assets are only loaded on pages that actually use a shortcode, and the AJAX loading architecture keeps initial page weight low. The tips below help you get the most out of those built-in optimisations and avoid common configuration pitfalls.
+
+## Built-in caching
+
+The plugin caches API responses automatically using WordPress transients. Understanding the cache durations helps you set expectations for how fresh the displayed content will be.
+
+| Data | Cache duration | Transient key pattern |
+|---|---|---|
+| YouTube video results (first batch) | 12 hours | `esquina_yt_v5_{hash}` |
+| YouTube uploads playlist ID | 24 hours | `esquina_yt_uploads_pl_{hash}` |
+| Facebook posts (first page only) | 5 minutes | `esquina_fb_{hash}` |
+
+Because YouTube results are cached for 12 hours, the vast majority of page views require zero calls to the YouTube Data API. Facebook's shorter 5-minute cache reflects the expectation that Facebook pages are updated more frequently.
+
+<Note>
+  If you use a persistent object cache back-end such as Redis or Memcached, WordPress transients are stored there automatically instead of in the database. Reads from an in-memory object cache are significantly faster than database lookups, which further reduces the overhead of every cached page view.
+</Note>
+
+## Recommendations
+
+### 1. Set a specific `max` value
+
+Use a concrete number for `max` rather than `max="all"` unless you genuinely need every video or post to be available.
+
+```txt
+[youtube_largo channel_id="UCxxxx" max="6" columns="3"]
+```
+
+When `max` is a finite number, the plugin fetches exactly that many videos on the server during the initial page render and stores the result in the cache. With `max="all"`, the initial render must also set up a session transient and prepare the "load more" infrastructure, which adds a small overhead and creates additional transients per visitor session.
+
+Use `max="all"` only when a complete, infinitely-scrollable feed is the intended user experience.
+
+### 2. Tune the `batch` parameter
+
+The `batch` parameter controls how many videos are fetched per AJAX "load more" request in unlimited mode. A smaller batch makes each individual AJAX request faster but requires more round-trips to display the same total number of videos. A larger batch fetches more in one go but may feel slower if the API response takes time.
+
+```txt
+[youtube_largo channel_id="UCxxxx" max="all" columns="4" batch="8"]
+```
+
+A good starting point is `batch` equal to one or two rows of your column layout — for example, `batch="6"` for a 3-column grid or `batch="8"` for a 4-column grid. Adjust based on your observed API response times.
+
+### 3. Use full-page caching
+
+The shortcodes render pure HTML output. Full-page caching plugins such as WP Super Cache, W3 Total Cache, or LiteSpeed Cache can cache the entire rendered page — including the shortcode output — and serve it as a static file to subsequent visitors. This eliminates PHP execution and database queries entirely for cached page views.
+
+Because the YouTube and Facebook data is already server-rendered into the page HTML on the first uncached load, the cached static page will contain the current feed data until the full-page cache expires. Align your full-page cache lifetime with the transient cache durations above to avoid showing stale data longer than necessary.
+
+### 4. Limit `categorias_grid` number
+
+The `[categorias_grid]` shortcode runs a `WP_Query` for each category it displays in order to retrieve category metadata and post counts. On sites with a large number of categories, setting a high `number` can result in many database queries on a single page load.
+
+```txt
+[categorias_grid number="6" columns="3"]
+```
+
+For most sites, a `number` between 6 and 12 strikes the right balance between useful content and query overhead. If you need to display more categories, consider splitting them across multiple pages.
+
+### 5. Limit `ultimas_entradas` number
+
+The `[ultimas_entradas]` shortcode accepts a maximum of 10 entries (`number` is capped at 10, default 5). For widgets placed in sidebars or footers, use the `footer="true"` parameter, which renders a more compact layout using smaller thumbnails (88 × 66 px) — reducing both HTML weight and image bytes.
+
+```txt
+[ultimas_entradas number="5" footer="true"]
+```
+
+### 6. Set `limit` to exactly what you need for Facebook
+
+The `[facebook_posts]` shortcode fetches up to `limit` posts from the Graph API in a single request on first load, and caches that result for 5 minutes. There is no benefit to fetching more posts than will ever be shown — a higher `limit` increases API response size, parse time, and the amount of data stored in the transient cache.
+
+```txt
+[facebook_posts page_id="631930116676494" limit="12" per_page="4"]
+```
+
+Set `limit` to the total number of posts you want to make available for pagination, and `per_page` to the number displayed at once.
+
+## CSS and JS asset loading
+
+Each shortcode conditionally enqueues its own stylesheet and JavaScript file using `wp_enqueue_style()` and `wp_enqueue_script()`. These files are only added to the page when the corresponding shortcode is actually rendered on that request.
+
+<Note>
+  If a page does not contain a YouTube shortcode, neither `youtube-feed.css` nor `youtube-feed.js` will be loaded. The same applies to the Facebook shortcode assets. This means unused assets never add to your page weight — no configuration required.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Caching" icon="database" href="/features/caching">
+    Deep dive into how the plugin's transient caching works.
+  </Card>
+  <Card title="AJAX Loading" icon="rotate" href="/features/ajax-loading">
+    How the "load more" AJAX architecture works for YouTube and Facebook feeds.
+  </Card>
+  <Card title="YouTube API Setup" icon="key" href="/guides/youtube-api-setup">
+    Quota information and API key setup for the YouTube integration.
+  </Card>
+  <Card title="Facebook API Setup" icon="key" href="/guides/facebook-api-setup">
+    Token setup and rate limit guidance for the Facebook integration.
+  </Card>
+</CardGroup>

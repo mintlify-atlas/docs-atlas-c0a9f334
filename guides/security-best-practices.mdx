@@ -1,0 +1,94 @@
+---
+title: "Security Best Practices for the Esquina Shortcodes Plugin"
+sidebarTitle: "Security"
+description: "Follow these security best practices when deploying the Esquina Shortcodes Plugin to protect your YouTube API key and Facebook access token from exposure."
+---
+
+The Esquina Shortcodes Plugin communicates with the YouTube Data API v3 and the Facebook Graph API on your behalf. Both integrations require credentials — an API key and a page access token — that must be kept private. This page explains how the plugin handles those credentials internally, what the secure configuration options are, and what to avoid.
+
+## Credential storage and priority chains
+
+The plugin resolves both the YouTube API key and the Facebook access token through a priority chain at runtime. The highest-priority source that contains a non-empty value wins. Understanding this chain helps you choose the right storage method for your environment.
+
+### YouTube API key resolution
+
+1. **Admin DB option** — `esquina_youtube_settings[api_key]`, set via **EsquinaWeb → YouTube** in the WordPress dashboard. This is the recommended method for most sites.
+2. **`wp-config.php` constant** — `ESQUINA_YT_API_KEY`. Preferred for environments where the database might be exported or shared, because `wp-config.php` is excluded from WordPress exports by default.
+3. **Shortcode attribute** — `api_key="…"` on the `[youtube_largo]` or `[youtube_shorts]` shortcode. **This is the least secure option and should never be used in production.**
+
+### Facebook access token resolution
+
+1. **Admin DB option** — `esquina_facebook_settings[access_token]`, set via **EsquinaWeb → Facebook** in the WordPress dashboard.
+2. **`wp-config.php` constant** — `ESQUINA_FB_PAGE_ACCESS_TOKEN`. Use this to keep the token out of the database entirely.
+3. **WordPress filter** — `esquina_fb_access_token`. Allows advanced users to resolve the token programmatically (e.g. from a secrets manager or environment variable).
+
+## Never expose credentials in shortcodes
+
+<Warning>
+  If you pass an API key or access token as a shortcode attribute (e.g. `api_key="AIza…"` or `access_token="EAAx…"`), that value is stored in post content in the WordPress database. It will be visible to any WordPress user with the `edit_posts` capability, appear in database exports and XML backups, and may be logged by caching plugins or full-text search plugins. Always use the admin settings page or `wp-config.php` instead.
+</Warning>
+
+## Recommended `wp-config.php` configuration
+
+For the highest level of isolation, define both credentials in `wp-config.php` above the `/* That's all, stop editing! */` line:
+
+```php wp-config.php
+define('ESQUINA_YT_API_KEY', 'AIza...');
+define('ESQUINA_FB_PAGE_ACCESS_TOKEN', 'EAAx...');
+```
+
+Because `wp-config.php` is excluded from the WordPress export tool and is never served directly by the web server (assuming a correctly configured server), credentials stored here are protected from most application-layer leaks.
+
+## AJAX nonce protection
+
+Both AJAX endpoints the plugin exposes are protected by WordPress nonces, which prevent cross-site request forgery (CSRF) attacks.
+
+| Shortcode type | Nonce name | AJAX action |
+|---|---|---|
+| YouTube (`[youtube_largo]`, `[youtube_shorts]`) | `esquina_yt_feed` | `esquina_yt_more` |
+| Facebook (`[facebook_posts]`) | `esquina_fb_feed` | `esquina_fb_more` |
+
+Nonces are generated fresh on each page load using `wp_create_nonce()` and embedded in the page's JavaScript configuration object. Every AJAX handler validates the nonce server-side with `check_ajax_referer()` before processing the request. Requests with a missing or invalid nonce are rejected immediately.
+
+## YouTube API key isolation via server-side sessions
+
+When the YouTube feed is used in "unlimited" mode (`max="all"` or `max=""`), the plugin creates a server-side session stored as a WordPress transient. The API key is saved inside that transient under the key `esquina_yt_s_{uuid}`, where `{uuid}` is a randomly generated UUID.
+
+The browser receives only the UUID session identifier — the API key itself is never included in the rendered HTML, in `data-*` attributes, or in any AJAX response. This means that even if a visitor inspects the page source or monitors network traffic, they will not see your YouTube API key.
+
+<Note>
+  The session transient expires after 1 hour. If a visitor leaves the "load more" button idle for longer than that, the next click will return a session-expired error, but no credential will ever be exposed.
+</Note>
+
+## Facebook token isolation
+
+The Facebook access token is resolved entirely server-side. It is used to construct the Graph API request URL on the server, and it is never included in:
+
+- The rendered HTML output of the shortcode
+- The `data-config` JSON attribute embedded in the page
+- Any AJAX response sent to the browser
+
+The browser sends only the page ID, the pagination cursor, and a nonce in AJAX requests — the token is looked up server-side for every request.
+
+## API key restrictions and token scopes
+
+In addition to the plugin's own protections, apply the following restrictions at the provider level:
+
+- **Google Cloud Console** — restrict your API key to the **YouTube Data API v3** only, and add an **HTTP referrer restriction** for your site's domain. This ensures the key cannot be used from other domains even if it is somehow discovered.
+- **Facebook** — use a **Page Access Token** with only the `pages_read_engagement` permission. Do not request broader permissions than necessary. For long-term use, consider a non-expiring System User token generated through Meta Business Suite.
+- **Shortcode parameters** — set conservative `limit` and `max` values. Fetching more data than you display wastes quota and increases server response time.
+
+<CardGroup cols={2}>
+  <Card title="YouTube API Setup" icon="key" href="/guides/youtube-api-setup">
+    Step-by-step guide to obtaining and restricting a YouTube Data API v3 key.
+  </Card>
+  <Card title="Facebook API Setup" icon="key" href="/guides/facebook-api-setup">
+    Step-by-step guide to generating a long-lived Facebook Page Access Token.
+  </Card>
+  <Card title="AJAX Loading" icon="rotate" href="/features/ajax-loading">
+    How the plugin's AJAX loading works and what data is sent to the browser.
+  </Card>
+  <Card title="Admin Panel" icon="sliders" href="/features/admin-panel">
+    Where to enter credentials in the WordPress admin dashboard.
+  </Card>
+</CardGroup>

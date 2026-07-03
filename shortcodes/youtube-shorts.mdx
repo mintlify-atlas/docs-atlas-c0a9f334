@@ -1,0 +1,191 @@
+---
+title: "youtube_shorts Shortcode — YouTube Shorts Grid"
+sidebarTitle: "youtube_shorts"
+description: "Display a portrait-oriented grid of YouTube Shorts (60 seconds or less) with the youtube_shorts shortcode, powered by YouTube Data API v3."
+---
+
+The `[youtube_shorts]` shortcode renders a portrait-oriented CSS grid of YouTube Shorts — videos with a duration of **60 seconds or less**. It shares the same YouTube Data API v3 infrastructure as `[youtube_largo]` (reading the channel's uploads playlist via `playlistItems`, then resolving durations via `videos.list`) but applies the opposite duration filter and is tuned for vertical media: portrait thumbnails are preferred, aspect ratios are 9:16, and the default column count is 4 rather than 3.
+
+## Basic Usage
+
+```txt
+[youtube_shorts channel_id="UCxxxx" api_key="xxxx" max="6" columns="4"]
+```
+
+## Parameters
+
+<ParamField query="channel_id" type="string" required>
+  The YouTube channel ID, which must begin with `UC` (e.g. `UCxxxxxxxxxxxxxxxxxxxxxx`). Falls back to the admin setting `esquina_youtube_settings[channel_id]` when omitted, so you can leave this out if you have pre-configured it in **EsquinaWeb → YouTube**.
+</ParamField>
+
+<ParamField query="api_key" type="string" required>
+  A valid YouTube Data API v3 key. The plugin resolves the key using the following priority chain:
+
+  1. `esquina_youtube_settings[api_key]` stored in the WordPress database (admin settings).
+  2. The `ESQUINA_YT_API_KEY` PHP constant defined in `wp-config.php`.
+  3. The `api_key` attribute passed directly to the shortcode.
+
+  If none of these is set, the shortcode outputs an error message.
+</ParamField>
+
+<ParamField query="max" type="string" default="6">
+  Maximum number of Shorts to display. Accepted values:
+
+  - Any integer from `1` to `100`.
+  - `"all"` or `"0"` — unlimited mode: the grid renders the first `batch` Shorts on page load and exposes a **Load More** button for on-demand AJAX fetching.
+</ParamField>
+
+<ParamField query="columns" type="integer" default="4">
+  Number of columns in the Shorts grid. Accepts `1` through `6`. Defaults to **4** (one more than `youtube_largo`'s default of 3) to suit the narrower portrait format. The value sets the CSS custom property `--esquina-yt-columns` on the wrapper element. The grid collapses to 2 columns on screens ≤ 768 px and to 1 column on screens ≤ 480 px.
+</ParamField>
+
+<ParamField query="batch" type="integer" default="8">
+  Number of Shorts fetched per AJAX request when `max="all"`. Accepts `1` through `50`. Defaults to **8** (higher than `youtube_largo`'s default batch to compensate for the denser grid). Ignored when `max` is a fixed number.
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```txt Basic 4-column Shorts grid
+[youtube_shorts channel_id="UCxxxx" api_key="YOUR_API_KEY" max="6" columns="4"]
+```
+
+```txt Portrait showcase — 5 columns
+[youtube_shorts channel_id="UCxxxx" api_key="YOUR_API_KEY" max="10" columns="5"]
+```
+
+```txt Unlimited Shorts with batch loading
+[youtube_shorts channel_id="UCxxxx" api_key="YOUR_API_KEY" max="all" batch="10" columns="4"]
+```
+
+</CodeGroup>
+
+## Differences from `youtube_largo`
+
+While `[youtube_shorts]` and `[youtube_largo]` share the same underlying render engine, they differ in several meaningful ways:
+
+| Aspect | `youtube_largo` | `youtube_shorts` |
+|---|---|---|
+| Duration filter | `> 60 seconds` | `≤ 60 seconds` |
+| Wrapper modifier class | `.esquina-yt--long` | `.esquina-yt--short` |
+| Thumbnail aspect ratio | `16 / 9` | `9 / 16` |
+| Thumbnail selection | Prefers highest-resolution landscape image (`maxres → standard → high → medium → default`) | **Prefers portrait images** (height > width) from the snippet; falls back to `maxresdefault` CDN URL |
+| Default `columns` | `3` | `4` |
+| Default `batch` | `max(columns × 2, 6)` | `8` |
+| Modal embed aspect ratio | `16 / 9` | `9 / 16`, max-width 400 px |
+| Preview iframe scaling | Fills 16:9 container naturally | 320 % width, centred horizontally to cover the 9:16 container |
+
+### Portrait thumbnail selection
+
+For Shorts, the plugin iterates over all thumbnails returned in the `snippet.thumbnails` object and selects the highest-resolution one where `height > width`. If no portrait thumbnail is found in the snippet, it falls back to the standard YouTube CDN URL:
+
+```txt
+https://i.ytimg.com/vi/{video_id}/maxresdefault.jpg
+```
+
+## How It Works
+
+`[youtube_shorts]` uses the identical API pipeline as `[youtube_largo]`. The steps below summarise the full flow; see [youtube_largo](/shortcodes/youtube-largo#how-it-works) for a detailed breakdown of each step.
+
+<Steps>
+
+### Convert channel ID to playlist ID
+
+The channel ID (`UC…`) is converted to the uploads playlist ID (`UU…`) locally — no API call needed. Cached for 24 hours.
+
+### Fetch and filter videos
+
+Pages of 50 video IDs are retrieved from `playlistItems`, then resolved via `videos.list` (`part=snippet,contentDetails`). Only videos with a duration **≤ 60 seconds** pass the filter.
+
+### Cache results
+
+Filtered results are cached in a WordPress transient for **12 hours**, preventing redundant API calls on subsequent page loads.
+
+### Server-side session (unlimited mode)
+
+When `max="all"`, a UUID session is created on the server (expires in 1 hour) so the browser never sees your API key. AJAX requests carry only the session UUID.
+
+### Render portrait grid
+
+Each Short is rendered as a `<button class="esquina-yt__card">` inside a 9:16 aspect-ratio container. Hovering triggers a muted looping preview iframe; clicking opens a 9:16 modal player.
+
+</Steps>
+
+## Admin Defaults
+
+All parameters can be pre-configured at **EsquinaWeb → YouTube**, allowing a zero-attribute shortcode:
+
+```txt
+[youtube_shorts]
+```
+
+The admin settings relevant to this shortcode are stored in `esquina_youtube_settings`:
+
+| Admin field | Option key | Shortcode attribute |
+|---|---|---|
+| API Key | `api_key` | `api_key` |
+| Channel ID | `channel_id` | `channel_id` |
+| Máximo Shorts | `max_shorts` | `max` |
+| Columnas Shorts | `columns_shorts` | `columns` |
+| Batch Shorts | `batch_shorts` | `batch` |
+
+<Tip>
+  Configure your API key and channel ID once under **EsquinaWeb → YouTube** so every `[youtube_shorts]` and `[youtube_largo]` shortcode on your site works without any attributes. Shortcode attributes always override the admin defaults when both are present.
+</Tip>
+
+## AJAX Endpoint
+
+Unlimited mode uses the same AJAX endpoint as `[youtube_largo]`. The server distinguishes between long and short videos using the session's stored `mode` value, so no extra parameter is needed from the client.
+
+| Property | Value |
+|---|---|
+| Action | `esquina_yt_more` |
+| Hooks | `wp_ajax_esquina_yt_more`, `wp_ajax_nopriv_esquina_yt_more` |
+| Method | `POST` |
+| URL | `admin-ajax.php` |
+| Nonce action | `esquina_yt_feed` |
+
+**POST parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `action` | string | Always `esquina_yt_more` |
+| `nonce` | string | WordPress nonce verified against `esquina_yt_feed` |
+| `session` | string | UUID issued by the server on initial render |
+| `page_token` | string | YouTube `nextPageToken` from the previous response |
+| `batch` | integer | Number of Shorts to load (1–50) |
+
+See [youtube_largo → AJAX Endpoint](/shortcodes/youtube-largo#ajax-endpoint) for the full JSON response shape and error handling details.
+
+<Warning>
+  Sessions expire after **1 hour**. A visitor who leaves the page open for more than an hour and then clicks **Load More** will receive a `403` session-expired error. A page refresh creates a new session automatically.
+</Warning>
+
+## CSS Classes
+
+`[youtube_shorts]` uses the same class structure as `[youtube_largo]`, with one key difference: the wrapper carries `.esquina-yt--short` instead of `.esquina-yt--long`. This modifier drives all portrait-specific styles.
+
+| Class | Element | Description |
+|---|---|---|
+| `.esquina-yt` | Wrapper `<div>` | Root element; carries `--esquina-yt-columns` CSS custom property |
+| `.esquina-yt--short` | Modifier on wrapper | **Short-video variant**; sets `aspect-ratio: 9 / 16` and `border-radius: 14px` on thumbnails |
+| `.esquina-yt__rail` | Grid `<div>` | CSS grid container (`display: grid`) |
+| `.esquina-yt__card` | `<button>` | Individual video card; interactive element |
+| `.esquina-yt__thumb-wrap` | `<span>` inside card | 9:16 aspect-ratio container for thumbnail and preview iframe |
+| `.esquina-yt__thumb` | `<img>` | Portrait thumbnail; scaled with `transform: scale(1.78)` to fill the container when the source image is 16:9 |
+| `.esquina-yt__preview` | `<span>` | Container for the muted looping preview iframe on hover |
+| `.esquina-yt__title` | `<span>` | Video title; two-line clamp |
+| `.esquina-yt__more-wrap` | `<div>` | Wraps the load-more button (unlimited mode only) |
+| `.esquina-yt__load-more` | `<button>` | "Load more videos" button |
+| `.esquina-yt-modal` | `<div>` | Fixed-position modal; 9:16 embed, max-width 400 px for Shorts |
+| `.esquina-yt-modal__backdrop` | `<div>` | Semi-transparent overlay |
+| `.esquina-yt-modal__dialog` | `<div>` | Modal content box |
+| `.esquina-yt-modal__close` | `<button>` | Close button (×) |
+| `.esquina-yt-modal__embed` | `<div>` | 9:16 iframe container (max-width 400 px) |
+| `.esquina-yt-modal__heading` | `<h2>` | Video title in the modal footer |
+| `.esquina-yt-modal__link` | `<a>` | "Watch on YouTube" link in the modal footer |
+
+<Note>
+  The grid collapses automatically at smaller viewports: 2 columns at ≤ 768 px and 1 column at ≤ 480 px. These breakpoints are defined in `assets/css/youtube-feed.css` and apply regardless of the `columns` attribute value.
+</Note>

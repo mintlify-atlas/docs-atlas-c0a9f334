@@ -1,0 +1,142 @@
+---
+title: "facebook_posts Shortcode — Facebook Page Feed"
+sidebarTitle: "facebook_posts"
+description: "Embed a paginated Facebook page post feed with photos and videos using the facebook_posts shortcode and Facebook Graph API v25.0."
+---
+
+The `facebook_posts` shortcode fetches posts from a Facebook page via the **Facebook Graph API v25.0** and renders them as an interactive, paginated card grid. It supports photo, video, and text-only posts. The first page of results is cached in a WordPress transient for 5 minutes to avoid repeated API calls on every page load. Clicking any card opens a modal overlay with the full post message, media, formatted publication date, and a direct link to the post on Facebook.
+
+## Token Configuration
+
+Before placing the shortcode, you must supply a **Facebook Page Access Token**. The plugin resolves the token in the following order of priority:
+
+**1. Admin settings panel (recommended)**
+
+Navigate to **EsquinaWeb → Facebook** in your WordPress dashboard and paste the token into the **Access Token** field. It is stored under the option key `esquina_facebook_settings[access_token]`.
+
+**2. `wp-config.php` constant**
+
+```php wp-config.php
+define('ESQUINA_FB_PAGE_ACCESS_TOKEN', 'your_page_access_token');
+```
+
+**3. WordPress filter**
+
+```php functions.php
+add_filter('esquina_fb_access_token', function() {
+    return 'your_page_access_token';
+});
+```
+
+<Warning>
+Never paste your access token directly into a shortcode attribute. Tokens embedded in post content are visible to anyone who can read the database or page source. Use the admin settings panel, `wp-config.php`, or the filter hook instead.
+</Warning>
+
+## Basic Usage
+
+```txt
+[facebook_posts page_id="631930116676494" limit="25" per_page="4"]
+```
+
+## Parameters
+
+<ParamField query="page_id" type="string" required>
+  Numeric Facebook page ID whose posts will be fetched. When left blank, the plugin falls back to the value stored in the admin settings field `esquina_facebook_settings[page_id]`. If neither is set, the shortcode renders an error message.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="25">
+  Total number of posts to fetch from the Graph API in a single request (minimum `1`, maximum `100`). All fetched posts are cached client-side and paginated locally. When the user navigates past the last locally cached post, the AJAX endpoint is called automatically to fetch the next batch.
+</ParamField>
+
+<ParamField query="per_page" type="integer" default="4">
+  Number of post cards displayed per page (minimum `1`, maximum `20`). The first card on each page is rendered as a featured (large) card; the remaining cards appear as smaller tiles alongside it.
+</ParamField>
+
+## API Fields Fetched
+
+The plugin requests the following fields from the Graph API for each post:
+
+```
+id, message, created_time, permalink_url, attachments{media_type,media,subattachments}
+```
+
+## Media Support
+
+The plugin traverses the `attachments` tree returned by the API to find the first usable media item:
+
+- **`photo`** — renders a card with a thumbnail image, a text preview of the message, and the post date. The modal displays the full-size image.
+- **`video`** — renders a card with a muted, auto-playing looping `<video>` element (poster image used as fallback). The modal shows the video player with audio enabled.
+- **Text-only posts** — render without any media area, showing only the message preview.
+
+Nested `subattachments` inside an attachment node are recursively traversed until a usable `photo` or `video` item is found.
+
+## AJAX Endpoint for Loading More
+
+When the user navigates forward past all locally cached posts and a next-page cursor is available, the JavaScript client automatically fires a POST request to load more:
+
+| Property | Value |
+|---|---|
+| **Action** | `esquina_fb_more` |
+| **Hooks** | `wp_ajax_esquina_fb_more`, `wp_ajax_nopriv_esquina_fb_more` |
+| **Nonce** | `esquina_fb_feed` |
+
+**POST parameters**
+
+| Parameter | Description |
+|---|---|
+| `action` | `esquina_fb_more` |
+| `nonce` | Security nonce value |
+| `page_id` | Facebook page ID |
+| `limit` | Number of posts to request |
+| `after` | Pagination cursor returned by the previous API response |
+
+**Success response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "posts": [ /* normalized post objects */ ],
+    "next_cursor": "cursor_string_or_empty"
+  }
+}
+```
+
+## CSS Classes Reference
+
+| Class | Description |
+|---|---|
+| `.esquina-fb-feed` | Root wrapper element for the entire feed. Holds the `data-config` JSON attribute. |
+| `.esquina-fb-feed__layout` | Card grid container. Uses a 2-column CSS grid (1 featured + up to 3 small cards). Collapses to a single column on screens ≤ 768 px. |
+| `.esquina-fb-card` | Individual post card (a `<button>` element). |
+| `.esquina-fb-card--featured` | The first card on each page — spans all grid rows in the left column. |
+| `.esquina-fb-card--small` | Secondary cards — stacked in the right column. |
+| `.esquina-fb-card__media` | Absolute-positioned media layer (image or video). |
+| `.esquina-fb-card__overlay` | Gradient overlay that darkens the media for text legibility. |
+| `.esquina-fb-card__excerpt` | Post message preview text, anchored to the card's bottom edge. |
+| `.esquina-fb-feed__pager` | Pagination bar containing **Anterior** and **Siguiente** buttons. |
+| `.esquina-fb-feed__meta` | Page indicator label (e.g. `Página 1 / 3`). |
+| `.esquina-fb-modal` | Full-screen modal overlay; hidden by default via the `hidden` attribute. |
+| `.esquina-fb-modal__backdrop` | Semi-transparent click-to-close backdrop. |
+| `.esquina-fb-modal__dialog` | Scrollable modal dialog (max width 720 px, max height 90 vh). |
+| `.esquina-fb-modal__media` | Media container inside the modal (image or video player with audio). |
+| `.esquina-fb-modal__body` | Text area with date, full message, and Facebook link. |
+| `.esquina-fb-feed__error` | Error message paragraph rendered when the API call fails or `page_id` is missing. |
+
+## Examples
+
+<CodeGroup>
+
+```txt Default (uses admin settings)
+[facebook_posts]
+```
+
+```txt Custom page — 8 posts visible per page
+[facebook_posts page_id="631930116676494" limit="50" per_page="8"]
+```
+
+```txt Minimal fetch — 10 posts, 2 per page
+[facebook_posts page_id="631930116676494" limit="10" per_page="2"]
+```
+
+</CodeGroup>

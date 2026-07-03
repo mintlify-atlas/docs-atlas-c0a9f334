@@ -1,0 +1,168 @@
+---
+title: "AJAX Dynamic Loading for YouTube and Facebook Feeds"
+sidebarTitle: "AJAX Loading"
+description: "The Esquina Shortcodes Plugin uses WordPress AJAX handlers to dynamically load additional YouTube videos and Facebook posts without a full page reload."
+---
+
+Both the YouTube and Facebook feed shortcodes support loading additional content dynamically via AJAX, so visitors can paginate through posts or videos without a full page refresh. Every AJAX call is authenticated with a WordPress nonce validated server-side before any data is fetched or returned. API credentials are never exposed to the browser.
+
+---
+
+## YouTube AJAX Loading
+
+The YouTube feed's AJAX loading is triggered when a visitor clicks the **"Cargar más videos"** button. This button is only rendered when the shortcode's `max` attribute is set to `all` (or `0`), which puts the feed into unlimited mode. For all fixed `max` values, videos are rendered entirely server-side on the initial page load and no "load more" button appears.
+
+### Session Model
+
+To prevent the YouTube API key from ever appearing in the browser, the plugin creates a server-side session at render time:
+
+1. A UUID is generated with `wp_generate_uuid4()`.
+2. The session data (`api_key`, `channel_id`, `mode`) is stored in a WordPress transient keyed as `esquina_yt_s_{uuid}` with a 1-hour TTL.
+3. Only the UUID is sent to the browser (embedded in the feed's `data-config` attribute).
+4. The set of already-seen video IDs is stored separately under `esquina_yt_seen_{uuid}` (also 1 hour TTL) so duplicate videos are never returned across paginated requests.
+
+### AJAX Request
+
+When the user clicks "Cargar más videos", the frontend JavaScript (`youtube-feed.js`) posts to `admin-ajax.php`:
+
+| Parameter | Description |
+|---|---|
+| `action` | `esquina_yt_more` |
+| `nonce` | WordPress nonce created with `wp_create_nonce('esquina_yt_feed')` |
+| `session` | The UUID session ID from `data-config` |
+| `page_token` | The YouTube playlist `nextPageToken` from the previous response |
+| `batch` | Number of videos to load (mirrors the `batch` shortcode attribute) |
+
+### AJAX Response
+
+The server validates the nonce, looks up the session transient to retrieve the API key, fetches the next batch from the YouTube playlist, updates the seen-IDs transient, and returns:
+
+```json
+{
+  "success": true,
+  "data": {
+    "html": "<button class=\"esquina-yt__card\" …>…</button>",
+    "next_page_token": "CAUQAA",
+    "has_more": true,
+    "count": 6
+  }
+}
+```
+
+The `html` field contains pre-rendered card markup that is directly appended to the feed's `.esquina-yt__rail` container. Each new card is then bound to the same hover-preview and click-to-modal event listeners.
+
+### WordPress Hooks
+
+```php
+add_action('wp_ajax_esquina_yt_more',        'esquina_yt_ajax_load_more');
+add_action('wp_ajax_nopriv_esquina_yt_more', 'esquina_yt_ajax_load_more');
+```
+
+---
+
+## Facebook AJAX Loading
+
+The Facebook feed always loads the first page of posts server-side at render time. When the user navigates past the last post available in the locally cached set, the frontend JavaScript (`facebook-posts.js`) automatically fetches the next page from the server before rendering.
+
+### Pagination Model
+
+The Facebook Graph API uses cursor-based pagination. The initial server-side render passes the first `after` cursor (from the Graph API response) into the feed's `data-config` attribute. The JavaScript state machine tracks `pageOffset` and `nextCursor` client-side. When advancing past the locally available posts, `fetchMore()` is called automatically before rendering.
+
+### AJAX Request
+
+The client posts to `admin-ajax.php` when it needs more posts:
+
+| Parameter | Description |
+|---|---|
+| `action` | `esquina_fb_more` |
+| `nonce` | WordPress nonce created with `wp_create_nonce('esquina_fb_feed')` |
+| `page_id` | The Facebook Page ID |
+| `limit` | Number of posts to request from the Graph API |
+| `after` | The cursor string from the previous API response |
+
+### AJAX Response
+
+The server validates the nonce, reads the access token from the saved option (never from the client request), calls the Graph API with the `after` cursor, and returns:
+
+```json
+{
+  "success": true,
+  "data": {
+    "posts": [
+      {
+        "id": "631930116676494_1234567890",
+        "message": "Post text…",
+        "message_preview": "Post text…",
+        "permalink_url": "https://www.facebook.com/…",
+        "created_time": "2025-01-15T12:00:00+0000",
+        "created_human": "January 15, 2025 12:00 pm",
+        "media_type": "photo",
+        "image": "https://…",
+        "video": ""
+      }
+    ],
+    "next_cursor": "QVFIUm…"
+  }
+}
+```
+
+The `posts` array contains normalised post objects. The `next_cursor` value is stored in the JavaScript state and used for subsequent requests.
+
+### WordPress Hooks
+
+```php
+add_action('wp_ajax_esquina_fb_more',        'esquina_fb_ajax_more');
+add_action('wp_ajax_nopriv_esquina_fb_more', 'esquina_fb_ajax_more');
+```
+
+---
+
+## Security Model
+
+Both AJAX handlers follow the same security pattern:
+
+<Steps>
+  <Step title="Nonce validation">
+    Every handler calls `check_ajax_referer()` as its very first action. If the nonce is missing or invalid, WordPress terminates the request immediately with a `403` response before any processing occurs.
+  </Step>
+  <Step title="Input sanitisation">
+    All `$_POST` values are sanitised before use: `sanitize_text_field()` for strings, `intval()` for integers, and regex stripping for numeric IDs.
+  </Step>
+  <Step title="Credentials stay server-side">
+    **YouTube:** The API key is stored in the session transient under a UUID known only to the server. The browser only ever holds the UUID. Even if the session UUID were intercepted, it cannot be used to retrieve the raw API key.
+
+    **Facebook:** The Page Access Token is read from `wp_options` on the server during each AJAX request. It is never included in the JSON payload returned to the client.
+  </Step>
+  <Step title="Logged-out access">
+    Both handlers register `wp_ajax_nopriv_*` hooks so that unauthenticated visitors can load more content. This is intentional — the feeds are public-facing. The nonce is still validated on every request.
+  </Step>
+</Steps>
+
+---
+
+## When AJAX Is Not Used
+
+<Note>
+  AJAX loading is only activated for the **YouTube feed** when `max="all"` (or `max="0"`) is set. For any fixed numeric `max` value, all videos are fetched and rendered server-side at page load — the "Cargar más videos" button is never output and no JavaScript requests are made.
+
+  The **Facebook feed** always uses AJAX for pages beyond the first: the initial posts are rendered server-side, but every subsequent page navigation that exhausts the locally held posts triggers an AJAX fetch.
+</Note>
+
+---
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Caching" href="/features/caching">
+    How transients reduce API calls for both YouTube and Facebook feeds.
+  </Card>
+  <Card title="YouTube Largo Shortcode" href="/shortcodes/youtube-largo">
+    Full reference for the `[youtube_largo]` shortcode, including the `max` and `batch` attributes.
+  </Card>
+  <Card title="Facebook Posts Shortcode" href="/shortcodes/facebook-posts">
+    Full reference for the `[facebook_posts]` shortcode and its pagination settings.
+  </Card>
+  <Card title="Security Best Practices" href="/guides/security-best-practices">
+    Further guidance on protecting API credentials in WordPress.
+  </Card>
+</CardGroup>

@@ -1,0 +1,167 @@
+---
+title: "Transient Caching for YouTube and Facebook Feeds"
+sidebarTitle: "Caching"
+description: "The Esquina Shortcodes Plugin caches YouTube and Facebook API results using WordPress transients to reduce API calls and improve page load performance."
+---
+
+The Esquina Shortcodes Plugin caches all external API responses using the native WordPress transients API (`set_transient` / `get_transient`). Caching prevents your YouTube Data API quota and Facebook Graph API rate limits from being consumed on every page view, and dramatically improves page load time for visitors — the API is only called when a cached result has expired or does not yet exist.
+
+---
+
+## YouTube Caching
+
+YouTube API results are cached at two levels: the uploads playlist ID is cached separately from the actual video data, and AJAX sessions maintain their own short-lived transients for deduplication.
+
+### Video Feed Cache
+
+| Property | Value |
+|---|---|
+| **TTL** | 12 hours (`ESQUINA_YT_CACHE_TTL = 12 * HOUR_IN_SECONDS`) |
+| **Cache key** | `esquina_yt_v5_{md5(channel_id\|mode\|first_count\|max\|api_key_prefix)}` |
+
+The cache key is a hash of the channel ID, mode (`long` or `short`), the number of videos in the first batch, the `max` value, and the first 12 characters of a SHA-256 hash of the API key. This ensures that different shortcode configurations on the same site each get their own cache entry.
+
+The cached value is an associative array:
+
+```php
+[
+    'videos'        => [
+        ['id' => 'dQw4w9WgXcQ', 'title' => 'Video title', 'thumb' => 'https://…'],
+        // …
+    ],
+    'nextPageToken' => 'CAUQAA',
+    'has_more'      => true,
+]
+```
+
+### Uploads Playlist ID Cache
+
+The plugin derives the uploads playlist ID from the channel ID mathematically (`UC…` → `UU…`) without an API call. The result is cached as a safety measure in case the derivation logic ever needs an API fallback:
+
+| Property | Value |
+|---|---|
+| **TTL** | 24 hours (`DAY_IN_SECONDS`) |
+| **Cache key** | `esquina_yt_uploads_pl_{md5(channel_id)}` |
+
+### AJAX Session Caches
+
+When `max="all"` mode is active, two additional transients are created per feed instance at page render time:
+
+| Transient | TTL | Purpose |
+|---|---|---|
+| `esquina_yt_s_{session_id}` | 1 hour (`HOUR_IN_SECONDS`) | Stores `api_key`, `channel_id`, and `mode` — the API key never leaves the server |
+| `esquina_yt_seen_{session_id}` | 1 hour (`HOUR_IN_SECONDS`) | Tracks seen video IDs across paginated AJAX requests to prevent duplicate cards |
+
+Both transients expire automatically after one hour of inactivity. A new session is created on every fresh page load.
+
+---
+
+## Facebook Caching
+
+Facebook Graph API responses are cached with a much shorter TTL because Facebook post feeds update far more frequently than YouTube video libraries.
+
+| Property | Value |
+|---|---|
+| **TTL** | 5 minutes (`5 * MINUTE_IN_SECONDS`) |
+| **Cache key** | `esquina_fb_{md5(page_id . '_' . limit . '_' . after)}` |
+
+Only the **first page request** (where the `after` cursor is an empty string) is cached. Subsequent AJAX requests for deeper pages are always fetched live from the Graph API.
+
+The cached value is an associative array:
+
+```php
+[
+    'posts'       => [
+        [
+            'id'              => '631930116676494_…',
+            'message'         => 'Full post text…',
+            'message_preview' => 'Truncated preview…',
+            'permalink_url'   => 'https://www.facebook.com/…',
+            'created_time'    => '2025-01-15T12:00:00+0000',
+            'created_human'   => 'January 15, 2025 12:00 pm',
+            'media_type'      => 'photo',
+            'image'           => 'https://…',
+            'video'           => '',
+        ],
+        // …
+    ],
+    'next_cursor' => 'QVFIUm…',
+    'raw'         => [ /* full Graph API response */ ],
+]
+```
+
+---
+
+## Cache Invalidation
+
+WordPress transients expire automatically based on their TTL. You do not need to do anything for normal cache rotation. To clear the cache manually — for example, after publishing an important new video or post — you can use any of the following approaches:
+
+```php
+// Clear the YouTube video cache for a specific channel + mode combination
+delete_transient('esquina_yt_v5_' . md5('UCyour_channel_id|long|6|6|abc123def456'));
+
+// Clear the uploads playlist cache for a specific channel
+delete_transient('esquina_yt_uploads_pl_' . md5('UCyour_channel_id'));
+
+// Clear the Facebook first-page cache for a specific page + limit
+delete_transient('esquina_fb_' . md5('631930116676494_25_'));
+
+// Clear ALL plugin transients at once (requires direct DB access or WP-CLI)
+global $wpdb;
+$wpdb->query(
+    "DELETE FROM {$wpdb->options}
+     WHERE option_name LIKE '_transient_esquina_%'
+        OR option_name LIKE '_transient_timeout_esquina_%'"
+);
+```
+
+You can also run the bulk deletion via WP-CLI:
+
+```bash
+wp eval 'global $wpdb; $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE \"_transient_esquina_%\" OR option_name LIKE \"_transient_timeout_esquina_%\"");'
+```
+
+---
+
+## Object Cache Compatibility
+
+<Note>
+  If your site uses a persistent object cache — such as Redis or Memcached — backed by a caching plugin (e.g., Redis Object Cache, W3 Total Cache object cache module), WordPress transients are automatically stored there instead of the `wp_options` database table. The Esquina Shortcodes Plugin works correctly with any WP-compatible persistent cache backend. Cache invalidation via `delete_transient()` is also handled transparently by WordPress regardless of the backend in use.
+</Note>
+
+---
+
+## High-Traffic Recommendation
+
+<Tip>
+  For high-traffic sites, consider adding a full-page caching layer (e.g., WP Super Cache, W3 Total Cache, LiteSpeed Cache) on top of the plugin's transient caching. Full-page caches serve the entire rendered HTML to most visitors without executing any PHP at all — including the YouTube and Facebook feed rendering. For sites where the YouTube feed TTL of 12 hours is too short or too long for your publishing cadence, you can hook into the transient write to override it:
+
+  ```php
+  // Example: extend YouTube cache to 24 hours
+  add_filter('pre_set_transient_esquina_yt_v5_' . md5('UCyour_channel_id|long|6|6|abc123'), function($value) {
+      // This filter is illustrative — use a custom wrapper if you need dynamic TTL control.
+      return $value;
+  });
+  ```
+
+  Alternatively, schedule a WP-Cron job to pre-warm the cache during off-peak hours by calling `do_shortcode('[youtube_largo]')` on a schedule.
+</Tip>
+
+---
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="AJAX Loading" href="/features/ajax-loading">
+    How AJAX session transients keep the YouTube API key off the browser.
+  </Card>
+  <Card title="YouTube Largo Shortcode" href="/shortcodes/youtube-largo">
+    The `[youtube_largo]` shortcode whose results are cached for 12 hours.
+  </Card>
+  <Card title="Facebook Posts Shortcode" href="/shortcodes/facebook-posts">
+    The `[facebook_posts]` shortcode whose first-page results are cached for 5 minutes.
+  </Card>
+  <Card title="Performance Tips" href="/guides/performance-tips">
+    Additional strategies for optimising plugin performance on high-traffic sites.
+  </Card>
+</CardGroup>

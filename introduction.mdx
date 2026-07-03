@@ -1,0 +1,97 @@
+---
+title: "Esquina Shortcodes Plugin: WordPress Content Embeds"
+sidebarTitle: "Introduction"
+description: "Esquina Shortcodes Plugin adds YouTube feeds, Facebook posts, category grids, and latest-entry widgets to any WordPress site using simple shortcodes."
+---
+
+The Esquina Shortcodes Plugin is a free WordPress plugin developed by EsquinaWeb that lets you embed rich, dynamic content — YouTube video feeds, Facebook page posts, category grids, post counters, and latest-entry widgets — anywhere on your site using simple shortcodes. No page-builder required, no bloated dependencies: drop a shortcode into any post, page, or widget area and the plugin handles the API calls, caching, and responsive layout automatically. It is especially well-suited for news portals, anime fan sites, and gaming communities that rely on a high volume of frequently updated content.
+
+## Plugin Details
+
+| Property | Value |
+|---|---|
+| Version | **1.5.95** |
+| Minimum WordPress | **6.0** |
+| Minimum PHP | **8.0** |
+| License | GPLv2 or later |
+| Author | Jhon Edinson Mantilla Ruiz — EsquinaWeb |
+
+## Available Shortcodes
+
+The plugin registers six shortcodes covering every major content type. Each shortcode is fully documented on its own reference page.
+
+<CardGroup cols={2}>
+  <Card
+    title="youtube_largo"
+    icon="youtube"
+    href="/shortcodes/youtube-largo"
+  >
+    Displays a responsive grid of standard YouTube videos (duration > 60 s) pulled from a channel's uploads playlist, with optional AJAX load-more pagination.
+  </Card>
+  <Card
+    title="youtube_shorts"
+    icon="film"
+    href="/shortcodes/youtube-shorts"
+  >
+    Shows a grid of YouTube Shorts (duration ≤ 60 s) from the same channel, with configurable column count and per-batch loading.
+  </Card>
+  <Card
+    title="facebook_posts"
+    icon="facebook"
+    href="/shortcodes/facebook-posts"
+  >
+    Fetches and displays posts from a Facebook Page via the Graph API, with AJAX-powered pagination and secure token handling.
+  </Card>
+  <Card
+    title="categorias_grid"
+    icon="grid-2"
+    href="/shortcodes/categorias-grid"
+  >
+    Renders a configurable grid of WordPress post categories, ideal for site navigation sections and homepage category showcases.
+  </Card>
+  <Card
+    title="category_post_count"
+    icon="hash"
+    href="/shortcodes/category-post-count"
+  >
+    Outputs the total published post count for any single category by slug — useful for badges, stat blocks, and sidebar callouts.
+  </Card>
+  <Card
+    title="ultimas_entradas"
+    icon="newspaper"
+    href="/shortcodes/ultimas-entradas"
+  >
+    Lists the most recently published posts with thumbnail, title, and date. Supports a compact footer/sidebar layout mode.
+  </Card>
+</CardGroup>
+
+## Architectural Highlights
+
+The plugin is built with performance and security in mind. Several design decisions distinguish it from simpler embed plugins:
+
+**Quota-efficient YouTube API usage** — The plugin calls the `playlistItems` endpoint to retrieve a channel's uploads rather than the `search.list` endpoint. The `search.list` endpoint costs 100 quota units per request; `playlistItems` costs only 1 unit, making it roughly 100× cheaper and far less likely to exhaust your daily YouTube Data API v3 quota.
+
+**AJAX load-more pagination** — Both `youtube_largo` and `youtube_shorts` support incremental loading. The initial page render shows only the first batch of videos; additional batches are fetched on demand via WordPress AJAX handlers without a full page reload.
+
+**WordPress transient caching** — API responses are stored using WordPress's native transient API so repeat visits do not trigger redundant external API calls. Cache lifetime is configurable per shortcode.
+
+**Secure credential storage** — API keys, channel IDs, and access tokens are stored in the WordPress options table via the admin settings pages. No credentials ever need to appear in shortcode markup, template files, or version-controlled source code. Tokens can also be defined in `wp-config.php` or injected via a WordPress filter for maximum deployment flexibility.
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Install the plugin via ZIP upload or Git clone, then activate it from the WordPress admin panel.
+  </Card>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/configuration"
+  >
+    Add your YouTube Data API v3 key, Facebook Graph API token, and adjust shortcode defaults from the EsquinaWeb admin dashboard.
+  </Card>
+</CardGroup>

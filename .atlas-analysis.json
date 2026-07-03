@@ -1,0 +1,84 @@
+{
+  "projectType": "general",
+  "projectName": "Esquina Shortcodes Plugin",
+  "projectDescription": "A WordPress plugin that provides shortcodes for embedding YouTube videos, Facebook posts, category grids, and latest posts with dynamic AJAX loading and responsive layouts.",
+  "theme": "almond",
+  "primaryColor": "#bd8236",
+  "lightColor": "#dad2cb",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "configuration"
+            ]
+          },
+          {
+            "group": "Shortcodes",
+            "pages": [
+              "shortcodes/youtube-largo",
+              "shortcodes/youtube-shorts",
+              "shortcodes/facebook-posts",
+              "shortcodes/categorias-grid",
+              "shortcodes/category-post-count",
+              "shortcodes/ultimas-entradas"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/recomendaciones",
+              "features/admin-panel",
+              "features/ajax-loading",
+              "features/caching"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/youtube-api-setup",
+              "guides/facebook-api-setup",
+              "guides/security-best-practices",
+              "guides/performance-tips",
+              "guides/uninstall"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "YouTube Data API v3 integration with quota-efficient playlistItems endpoint",
+    "Separate display modes for long videos (>60s) and Shorts (≤60s)",
+    "Facebook Graph API v25.0 post feed with photo and video support",
+    "Responsive category grid with featured image backgrounds and post counts",
+    "Latest posts shortcode with three layout modes: vertical, grid-1, grid-2",
+    "AJAX-powered dynamic loading for YouTube and Facebook feeds",
+    "12-hour transient caching for YouTube results; 5-minute caching for Facebook",
+    "Automatic related post recommendations appended after single post content",
+    "WordPress admin panel with dedicated settings pages for each integration",
+    "Secure API key and token storage via wp-config.php constants or admin options"
+  ],
+  "publicApiSurface": [
+    "[youtube_largo channel_id=\"UC...\" api_key=\"...\" max=\"6\" columns=\"3\" batch=\"6\"]",
+    "[youtube_shorts channel_id=\"UC...\" api_key=\"...\" max=\"6\" columns=\"4\" batch=\"8\"]",
+    "[facebook_posts page_id=\"...\" limit=\"25\" per_page=\"4\"]",
+    "[categorias_grid number=\"6\" columns=\"3\" hide_empty=\"true\"]",
+    "[category_post_count category=\"anime\"]",
+    "[ultimas_entradas number=\"5\" width=\"100\" height=\"75\" footer=\"false\" layout=\"vertical\" columns=\"3\" title_color=\"#ffffff\"]",
+    "define('ESQUINA_FB_PAGE_ACCESS_TOKEN', 'your_token');",
+    "define('ESQUINA_YT_API_KEY', 'your_key');",
+    "wp_ajax_esquina_fb_more (AJAX action)",
+    "wp_ajax_esquina_yt_more (AJAX action)",
+    "esquina_fb_access_token (WordPress filter)",
+    "esquina_recomendaciones_settings (WordPress option)",
+    "esquina_youtube_settings (WordPress option)",
+    "esquina_facebook_settings (WordPress option)"
+  ]
+}

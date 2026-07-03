@@ -1,0 +1,63 @@
+---
+title: "categorias_grid Shortcode — Visual Category Grid"
+sidebarTitle: "categorias_grid"
+description: "Render a responsive CSS grid of WordPress categories with featured-image backgrounds, category names, and post counts using the categorias_grid shortcode."
+---
+
+The `categorias_grid` shortcode renders a responsive CSS grid of WordPress categories. Each category is displayed as a full-bleed card whose background is the featured image of that category's most recent published post. A gradient overlay sits on top of the image, anchoring the category name and total post count to the bottom of the card. Categories are ordered by post count from highest to lowest by default. If no post in a category has a featured image, a placeholder image is used as the background. The grid collapses to a single column on screens 768 px wide or narrower. All styles are injected inline via the `wp_head` action hook — no separate stylesheet is enqueued.
+
+## Basic Usage
+
+```txt
+[categorias_grid]
+```
+
+## Parameters
+
+<ParamField query="number" type="integer" default="0">
+  Number of categories to display. `0` retrieves all available categories. When a positive integer is supplied, only the top N categories (by post count) are shown.
+</ParamField>
+
+<ParamField query="columns" type="integer" default="3">
+  Number of columns in the grid (valid range: `1`–`6`). The value is applied directly as `grid-template-columns: repeat(N, 1fr)` via an inline style on the container. This inline style is overridden on small screens by a `!important` media query that forces a single column.
+</ParamField>
+
+<ParamField query="hide_empty" type="boolean" default="true">
+  Whether to exclude categories that have no published posts. Set to `"false"` to show categories with zero posts (useful when you want to preview a site's full taxonomy structure).
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```txt All categories, 3 columns (defaults)
+[categorias_grid]
+```
+
+```txt Top 6 categories, 3 columns
+[categorias_grid number="6" columns="3"]
+```
+
+```txt Top 12 categories, 4 columns, include empty
+[categorias_grid number="12" columns="4" hide_empty="false"]
+```
+
+```txt Single-column list of top 5 categories
+[categorias_grid number="5" columns="1"]
+```
+
+</CodeGroup>
+
+## CSS Classes Reference
+
+| Class | Description |
+|---|---|
+| `.grid-categorias` | Grid container element. Receives an inline `style` attribute with the `grid-template-columns` value derived from the `columns` parameter. Also sets `display: grid`, `gap: 20px`, and `margin: 20px 0`. |
+| `.categoria-item` | Each category card — an `<a>` tag linking to the category archive. Receives an inline `style` attribute with the `background-image` URL. Fixed height of 250 px, rounded corners (`border-radius: 12px`), and a bottom-to-top box shadow for depth. |
+| `.categoria-item .overlay` | Gradient overlay rendered as an absolutely-positioned child of `.categoria-item`. Contains the `<h2>` category name and a `<span>` with the post count in the format `N artículos`. The overlay deepens on `:hover`. |
+
+## Performance Note
+
+<Note>
+Each category in the grid triggers one additional `WP_Query` call to retrieve the featured image URL of that category's most recent post. On sites with a large number of categories, this can result in many database queries per page load. Use the `number` parameter to limit the rendered categories (e.g., `number="6"`) and consider adding a page-level caching layer if the shortcode is used on a high-traffic page.
+</Note>

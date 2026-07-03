@@ -1,0 +1,139 @@
+---
+title: "Automatic Related Post Recommendations"
+sidebarTitle: "Recomendaciones"
+description: "Automatically append related post recommendations after every WordPress single post using the Recomendaciones feature, with grid or Netflix-style carousel layouts."
+---
+
+The Recomendaciones feature automatically appends a section of related posts at the bottom of every single post on your WordPress site. It hooks into the `the_content` filter, reads the first category of the current post, and renders a curated selection of posts from that same category — without any manual shortcode placement required. You control everything from the **EsquinaWeb → Recomendaciones** admin page.
+
+## How It Works
+
+When a visitor loads a single post (`is_single()` is `true`), the plugin reads the `esquina_recomendaciones_settings` option and, if the feature is enabled, runs a `WP_Query` to find related posts. The current post is excluded, and results are filtered to the first category assigned to the post.
+
+<Steps>
+  <Step title="Load settings">
+    The filter callback calls `get_option('esquina_recomendaciones_settings')` and checks the `enabled` flag. If the feature is disabled, the original content is returned unchanged.
+  </Step>
+  <Step title="Resolve the post category">
+    `get_the_category()` is called on the current post. If no categories are assigned, the content is returned unchanged. Otherwise, the first category (`$categorias[0]`) is used as the filter.
+  </Step>
+  <Step title="Run the WP_Query">
+    A `WP_Query` is built with `cat` set to the first category's term ID and `post__not_in` set to the current post ID. The number of posts retrieved is controlled by the `posts_per_page` setting.
+
+    - **`mode: latest`** — `orderby => date`, `order => DESC`
+    - **`mode: random`** — `orderby => rand`
+  </Step>
+  <Step title="Render the recommendations block">
+    The plugin outputs a `<section class="esquina-recomendaciones">` block containing a heading, the post cards, and (optionally) a category link. The rendered HTML is appended to the original `$content` string.
+  </Step>
+</Steps>
+
+## Configuration Settings
+
+All settings are managed under **EsquinaWeb → Recomendaciones** in the WordPress admin. They are stored as a serialized array in the `esquina_recomendaciones_settings` option.
+
+<ParamField path="enabled" type="checkbox">
+  Activates or deactivates the entire feature. When unchecked, no recommendations HTML is appended to any post.
+</ParamField>
+
+<ParamField path="title" type="string" default="Recomendaciones">
+  The heading text displayed above the recommendations block. The post's category name is appended automatically — for example, "Recomendaciones de Tecnología".
+</ParamField>
+
+<ParamField path="posts_per_page" type="select">
+  Number of related posts to display. Available options: **2**, **3**, **4**, **5**, **6**, **8**. Default is **6**.
+</ParamField>
+
+<ParamField path="mode" type="select" default="latest">
+  Controls how related posts are selected:
+  - **`latest`** — ordered by publish date, newest first.
+  - **`random`** — ordered randomly on each page load.
+</ParamField>
+
+<ParamField path="layout" type="select" default="grid">
+  Controls the visual layout of the recommendations block:
+  - **`grid`** — a standard CSS grid of cards.
+  - **`carousel`** — a Netflix-style horizontal carousel with navigation arrows.
+</ParamField>
+
+<ParamField path="autoplay" type="checkbox">
+  *(Carousel only)* When enabled, the carousel automatically advances through slides. The speed is controlled by the **Speed** setting. This value is passed to the frontend JavaScript as `window.esquinaRecSettings.autoplay`.
+</ParamField>
+
+<ParamField path="speed" type="select" default="5000">
+  *(Carousel only)* The interval between automatic slide advances in milliseconds:
+  - **5000** — Slow (5 seconds)
+  - **3000** — Medium (3 seconds)
+  - **2000** — Fast (2 seconds)
+
+  This value is passed to the frontend as `window.esquinaRecSettings.speed`.
+</ParamField>
+
+<ParamField path="size" type="select" default="medium">
+  *(Carousel only)* Controls the visual size of carousel cards via a CSS modifier class:
+  - **`small`** → `.esquina-size-small`
+  - **`medium`** → `.esquina-size-medium`
+  - **`large`** → `.esquina-size-large`
+</ParamField>
+
+<ParamField path="thumbnail" type="checkbox">
+  When enabled, the featured image of each recommended post is displayed inside its card using `the_post_thumbnail('medium')`.
+</ParamField>
+
+<ParamField path="category_link" type="checkbox">
+  When enabled, a "Ver más artículos de [Category]" link is appended below the recommendations block, pointing to the category archive page.
+</ParamField>
+
+## CSS Classes
+
+The following CSS classes are output by the recommendations renderer and can be used for custom styling:
+
+| Class | Description |
+|---|---|
+| `.esquina-recomendaciones` | Outer `<section>` wrapper for the entire block |
+| `.esquina-grid` | Container when **grid** layout is selected |
+| `.esquina-carousel-wrapper` | Outer wrapper when **carousel** layout is selected |
+| `.esquina-carousel` | The scrollable carousel track |
+| `.esquina-prev` / `.esquina-next` | Left and right navigation arrow buttons |
+| `.esquina-card` | Individual recommendation post card (`<article>`) |
+| `.esquina-size-small` | Applied to the section when carousel size is **small** |
+| `.esquina-size-medium` | Applied to the section when carousel size is **medium** |
+| `.esquina-size-large` | Applied to the section when carousel size is **large** |
+| `.esquina-category-link` | Container `<div>` wrapping the "Ver más artículos" link |
+
+## JavaScript Localisation
+
+The frontend carousel script (`recomendaciones.js`) receives its configuration via `wp_localize_script`. The object is available globally as `window.esquinaRecSettings`:
+
+```js
+// Available as window.esquinaRecSettings
+{
+  autoplay: true,  // boolean — mirrors the "Autoplay" checkbox
+  speed: 5000      // ms    — mirrors the "Speed" dropdown value
+}
+```
+
+The `autoplay` field is `true` only when the checkbox is checked **and** the carousel layout is active. The `speed` field defaults to `5000` if no value has been saved.
+
+## Single Posts Only
+
+<Note>
+  Recommendations are appended **only on single post pages** where `is_single()` returns `true`. They do not appear on archive pages, category listing pages, tag pages, search results, or the homepage. If you need recommendations in other contexts, you will need to add a custom filter.
+</Note>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Admin Panel" href="/features/admin-panel">
+    Configure the Recomendaciones settings through the EsquinaWeb admin dashboard.
+  </Card>
+  <Card title="Caching" href="/features/caching">
+    Learn how WordPress transients reduce repeated database queries from related post lookups.
+  </Card>
+  <Card title="Performance Tips" href="/guides/performance-tips">
+    Recommendations with random mode disable query caching — see tips for high-traffic sites.
+  </Card>
+  <Card title="Security Best Practices" href="/guides/security-best-practices">
+    All output is escaped with `esc_html()` and `esc_url()` before rendering.
+  </Card>
+</CardGroup>

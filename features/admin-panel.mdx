@@ -1,0 +1,153 @@
+---
+title: "EsquinaWeb Admin Dashboard and Settings Pages"
+sidebarTitle: "Admin Panel"
+description: "The Esquina Shortcodes Plugin adds an EsquinaWeb menu to the WordPress admin with a dashboard and dedicated settings pages for YouTube, Facebook, and Recomendaciones."
+---
+
+After activating the Esquina Shortcodes Plugin, a top-level **EsquinaWeb** menu entry appears in the WordPress admin sidebar at position 30, identified by the `dashicons-superhero` icon. From here you can configure every aspect of the plugin — API credentials, feed defaults, and the related post recommendations feature — without touching PHP configuration files.
+
+## Menu Structure
+
+The EsquinaWeb menu contains four pages:
+
+| Page | Slug | Purpose |
+|---|---|---|
+| **EsquinaWeb** | `esquinaweb-dashboard` | Author links and plugin resources |
+| **YouTube** | `esquina-youtube` | API key, channel ID, and feed defaults |
+| **Facebook** | `esquina-facebook` | Access token, page ID, and pagination settings |
+| **Recomendaciones** | `esquina-recomendaciones` | Related post recommendations settings |
+
+---
+
+## Dashboard Page
+
+The dashboard is the first page you see when you click **EsquinaWeb** in the admin menu. It is purely informational and does not save any settings. It displays a grid of cards with links to the author's websites, social profiles, professional profiles, documentation, and plugin releases.
+
+<CardGroup cols={2}>
+  <Card title="EsquinaWeb" href="https://esquinaweb.com/">
+    Main website for the plugin author.
+  </Card>
+  <Card title="EsquinaGamers" href="https://esquinagamers.com/">
+    Gaming content site by the same author.
+  </Card>
+  <Card title="EsquinaAnime" href="https://esquinaanime.com/">
+    Anime content site by the same author.
+  </Card>
+  <Card title="GitHub Repository" href="https://github.com/Jhon-mantila/pluging-wordpress">
+    Source code and releases for this plugin.
+  </Card>
+</CardGroup>
+
+The dashboard also links to the author's Facebook pages (EsquinaGamers and EsquinaWeb), YouTube channel (EsquinaStudio), TikTok profile, LinkedIn, GitHub profile, the plugin knowledge base, and official documentation.
+
+---
+
+## YouTube Settings Page
+
+Navigate to **EsquinaWeb → YouTube** to configure the YouTube Data API v3 integration. Settings are stored in the `esquina_youtube_settings` WordPress option (`wp_options` table).
+
+All values set here become the defaults for the `[youtube_largo]` and `[youtube_shorts]` shortcodes. Individual shortcode attributes always override these defaults.
+
+<ParamField path="api_key" type="string" required>
+  Your YouTube Data API v3 key. Displayed as a password field with a show/hide toggle. If left empty, the plugin falls back to the `ESQUINA_YT_API_KEY` constant defined in `wp-config.php`.
+</ParamField>
+
+<ParamField path="channel_id" type="string" required>
+  The YouTube channel ID (begins with `UC…`). The plugin derives the uploads playlist ID from this value automatically (converting `UC…` → `UU…`) without an extra API call.
+</ParamField>
+
+<ParamField path="max_largos" type="integer" default="6">
+  Maximum number of long-form videos (duration > 60 seconds) to display. Accepts 1–100. Set to `0` or `all` to enable unlimited AJAX loading.
+</ParamField>
+
+<ParamField path="columns_largos" type="integer" default="3">
+  Number of columns in the long-video grid. Accepts 1–6.
+</ParamField>
+
+<ParamField path="batch_largos" type="integer" default="6">
+  Number of long videos loaded per AJAX "load more" request. Accepts 1–50.
+</ParamField>
+
+<ParamField path="max_shorts" type="integer" default="6">
+  Maximum number of Shorts (duration ≤ 60 seconds) to display. Accepts 1–100. Set to `0` or `all` to enable unlimited AJAX loading.
+</ParamField>
+
+<ParamField path="columns_shorts" type="integer" default="4">
+  Number of columns in the Shorts grid. Accepts 1–6.
+</ParamField>
+
+<ParamField path="batch_shorts" type="integer" default="8">
+  Number of Shorts loaded per AJAX "load more" request. Accepts 1–50.
+</ParamField>
+
+---
+
+## Facebook Settings Page
+
+Navigate to **EsquinaWeb → Facebook** to configure the Facebook Graph API integration. Settings are stored in the `esquina_facebook_settings` WordPress option.
+
+All values set here become the defaults for the `[facebook_posts]` shortcode. Individual shortcode attributes always override these defaults.
+
+<ParamField path="access_token" type="string" required>
+  Your Facebook Page Access Token. Displayed as a password field with a show/hide toggle. If left empty, the plugin falls back to the `ESQUINA_FB_PAGE_ACCESS_TOKEN` constant defined in `wp-config.php`, or to the `esquina_fb_access_token` WordPress filter.
+</ParamField>
+
+<ParamField path="page_id" type="string" required>
+  The numeric Facebook Page ID. Only digits are accepted — any non-numeric characters are stripped before the API request is made.
+</ParamField>
+
+<ParamField path="limit" type="integer" default="25">
+  Number of posts to request per Graph API call. Accepts 1–100. This is the `limit` parameter sent to the `/{page_id}/posts` endpoint.
+</ParamField>
+
+<ParamField path="per_page" type="integer" default="4">
+  Number of posts displayed per page in the frontend feed widget. Accepts 1–20. When the user navigates past the last locally loaded page, a new AJAX request is made automatically using the Graph API cursor.
+</ParamField>
+
+---
+
+## Recomendaciones Settings Page
+
+Navigate to **EsquinaWeb → Recomendaciones** to configure automatic related post recommendations. Settings are stored in the `esquina_recomendaciones_settings` WordPress option.
+
+For a full description of every field, see the [Recomendaciones feature page](/features/recomendaciones). A quick reference of available settings:
+
+| Setting | Key | Description |
+|---|---|---|
+| Enabled | `enabled` | Checkbox to activate/deactivate the feature |
+| Title | `title` | Heading text above the recommendations block |
+| Quantity | `posts_per_page` | Number of posts shown (2, 3, 4, 5, 6, or 8) |
+| Mode | `mode` | `latest` (by date) or `random` |
+| Layout | `layout` | `grid` or `carousel` |
+| Autoplay | `autoplay` | Carousel only — auto-advance slides |
+| Speed | `speed` | Carousel only — `5000`, `3000`, or `2000` ms |
+| Size | `size` | Carousel only — `small`, `medium`, or `large` |
+| Show thumbnail | `thumbnail` | Display featured image on each post card |
+| Show category link | `category_link` | Append a "Ver más artículos de [Category]" link |
+
+---
+
+## Credentials Stored in the Database
+
+<Tip>
+  Credentials saved through the admin settings pages are stored in the WordPress `wp_options` table and take priority over any `ESQUINA_YT_API_KEY` or `ESQUINA_FB_PAGE_ACCESS_TOKEN` constants defined in `wp-config.php`. This means you can deploy and update credentials directly from the admin UI without touching PHP configuration files — useful for managed hosting environments where direct file access is restricted.
+</Tip>
+
+---
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="YouTube API Setup" href="/guides/youtube-api-setup">
+    Step-by-step guide to creating a YouTube Data API v3 key.
+  </Card>
+  <Card title="Facebook API Setup" href="/guides/facebook-api-setup">
+    How to generate a Facebook Page Access Token for the Graph API.
+  </Card>
+  <Card title="Recomendaciones" href="/features/recomendaciones">
+    Full documentation for the automatic related post feature.
+  </Card>
+  <Card title="Security Best Practices" href="/guides/security-best-practices">
+    Recommendations for keeping your API credentials safe.
+  </Card>
+</CardGroup>

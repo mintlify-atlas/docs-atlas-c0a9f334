@@ -1,0 +1,104 @@
+---
+title: "Uninstall Esquina Shortcodes Plugin"
+sidebarTitle: "Uninstall"
+description: "Completely remove the Esquina Shortcodes Plugin from WordPress, including all stored settings and API credentials, using the built-in uninstall routine."
+---
+
+When you delete the Esquina Shortcodes Plugin through the WordPress admin interface, WordPress automatically runs the plugin's `uninstall.php` file before removing the plugin files. This routine deletes all of the plugin's stored settings from the WordPress database, leaving your site clean with no orphaned options.
+
+## What happens on uninstall
+
+The `uninstall.php` routine calls `delete_option()` for each of the three option groups the plugin stores in the `wp_options` table:
+
+| Option name | What it contains |
+|---|---|
+| `esquina_recomendaciones_settings` | Recommendation widget settings |
+| `esquina_youtube_settings` | YouTube API key, Channel ID, and feed defaults |
+| `esquina_facebook_settings` | Facebook Page Access Token, Page ID, and feed defaults |
+
+All three options are removed in a single pass when you click **Delete** in the Plugins screen.
+
+## Uninstall steps
+
+<Steps>
+  <Step title="Deactivate the plugin">
+    Go to **WordPress → Plugins** in your dashboard. Find **Mis funciones** in the list and click **Deactivate**. The plugin is now inactive but its files and database options still exist.
+  </Step>
+
+  <Step title="Delete the plugin">
+    After deactivation, a **Delete** link appears next to the plugin entry. Click **Delete**.
+  </Step>
+
+  <Step title="Confirm the deletion">
+    WordPress will show a confirmation screen listing the plugin files that will be removed. Click **Yes, delete these files and data** to confirm.
+  </Step>
+
+  <Step title="Uninstall routine runs automatically">
+    WordPress detects the presence of `uninstall.php` and executes it before removing the plugin files. The routine deletes `esquina_recomendaciones_settings`, `esquina_youtube_settings`, and `esquina_facebook_settings` from `wp_options`. No further action is required.
+  </Step>
+</Steps>
+
+## What is removed
+
+- All plugin admin settings stored in the WordPress database (`wp_options`), including:
+  - Your **YouTube API key** and **Channel ID**
+  - Your **Facebook Page Access Token** and **Page ID**
+  - All **recommendation widget settings**
+  - All feed defaults (max, columns, batch, limit, per_page)
+
+<Note>
+  Save your YouTube API key and Facebook Page Access Token somewhere safe before uninstalling. Once the plugin is deleted, these values are permanently removed from the database. If you reinstall the plugin later, you will need to re-enter them.
+</Note>
+
+## What is NOT removed
+
+### Transient caches
+
+WordPress transients created by the plugin (cached API results and session data) are **not** deleted by `uninstall.php`. They will expire on their own according to their TTL (12 hours for YouTube results, 5 minutes for Facebook results, 24 hours for playlist IDs, 1 hour for session data). If you want to remove them immediately, use WP-CLI:
+
+```bash
+wp transient delete --all
+```
+
+Or delete them directly from the database:
+
+```sql
+DELETE FROM wp_options WHERE option_name LIKE '_transient_esquina_%';
+DELETE FROM wp_options WHERE option_name LIKE '_transient_timeout_esquina_%';
+```
+
+Replace `wp_options` with your actual table name if you use a custom database prefix.
+
+### Shortcodes in post content
+
+Removing the plugin does **not** clean up shortcode tags embedded in your posts or pages. After the plugin is deleted, shortcode tags such as `[youtube_largo …]`, `[youtube_shorts …]`, `[facebook_posts …]`, `[categorias_grid]`, `[category_post_count …]`, and `[ultimas_entradas]` will appear as plain, unprocessed text on the front end.
+
+To prevent this, search for and remove shortcode tags from your post content before uninstalling the plugin. You can do this manually in the post editor, or use a database search-and-replace tool such as WP-CLI:
+
+```bash
+wp search-replace '[youtube_largo' '' --all-tables
+wp search-replace '[youtube_shorts' '' --all-tables
+wp search-replace '[facebook_posts' '' --all-tables
+wp search-replace '[categorias_grid' '' --all-tables
+wp search-replace '[category_post_count' '' --all-tables
+wp search-replace '[ultimas_entradas' '' --all-tables
+```
+
+<Warning>
+  Always back up your database before running search-and-replace operations. A broad replacement can cause data loss if the search string matches unintended content.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    How to install or reinstall the Esquina Shortcodes Plugin.
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/configuration">
+    How to configure the plugin settings after installation.
+  </Card>
+  <Card title="YouTube API Setup" icon="key" href="/guides/youtube-api-setup">
+    Re-obtain and configure your YouTube API key after reinstalling.
+  </Card>
+  <Card title="Facebook API Setup" icon="key" href="/guides/facebook-api-setup">
+    Re-obtain and configure your Facebook Page Access Token after reinstalling.
+  </Card>
+</CardGroup>

@@ -1,0 +1,95 @@
+---
+title: "Set Up YouTube Data API v3 for the Plugin"
+sidebarTitle: "YouTube API Setup"
+description: "Obtain a YouTube Data API v3 key and Channel ID from Google Cloud Console and configure them in the Esquina Shortcodes Plugin admin settings."
+---
+
+Before the `[youtube_largo]` and `[youtube_shorts]` shortcodes can fetch videos, the plugin needs a YouTube Data API v3 key and your channel's ID. This guide walks you through creating the key in Google Cloud Console, finding your Channel ID on YouTube, and saving both values in the WordPress admin panel.
+
+## What you need
+
+- A Google account
+- YouTube Data API v3 enabled on a Google Cloud project
+- An API key generated for that project
+- Your YouTube Channel ID (starts with `UC`)
+
+## Steps
+
+<Steps>
+  <Step title="Open Google Cloud Console">
+    Go to [https://console.cloud.google.com/](https://console.cloud.google.com/) and sign in with your Google account.
+  </Step>
+
+  <Step title="Create or select a project">
+    Click the project dropdown at the top of the page. Either select an existing project or click **New Project**, give it a name (e.g. `my-wordpress-site`), and click **Create**.
+  </Step>
+
+  <Step title="Enable YouTube Data API v3">
+    In the left-hand menu navigate to **APIs & Services → Library**. Search for `YouTube Data API v3`, click the result, then click **Enable**.
+  </Step>
+
+  <Step title="Create an API key">
+    Navigate to **APIs & Services → Credentials** and click **Create Credentials → API Key**. Google will generate the key and display it in a dialog. Copy it before closing.
+  </Step>
+
+  <Step title="(Recommended) Restrict the API key">
+    In the Credentials list, click the pencil icon next to your new key. Under **API restrictions**, choose **Restrict key** and select **YouTube Data API v3**. Under **Application restrictions**, add your site's domain. Click **Save**.
+  </Step>
+
+  <Step title="Find your YouTube Channel ID">
+    Go to your YouTube channel page. Click your profile photo in the top-right corner → **Settings** → **Advanced settings**. Your Channel ID is displayed there — it begins with `UC` and is around 24 characters long. Copy it.
+  </Step>
+
+  <Step title="Save the credentials in WordPress">
+    In your WordPress dashboard go to **EsquinaWeb → YouTube**, paste the **API Key** and **Channel ID** into their respective fields, and click **Save**. The plugin will use these values as the default for all YouTube shortcodes on your site.
+  </Step>
+</Steps>
+
+## API quota information
+
+YouTube Data API v3 grants 10,000 units of quota per project per day by default. The plugin is designed to use as few units as possible:
+
+| Operation | Units per call |
+|---|---|
+| `playlistItems.list` (one page, up to 50 IDs) | 1 unit |
+| `videos.list` (durations for up to 50 videos) | 1 unit |
+| `search.list` (not used by this plugin) | 100 units |
+
+The plugin derives the uploads playlist ID from the channel ID directly (`UC…` → `UU…`), so it never calls `channels.list`. Each page of the playlist costs 1 unit to list and 1 unit to resolve durations — 2 units per 50 videos. Results are cached for 12 hours using WordPress transients, so the vast majority of page views consume zero quota.
+
+<Note>
+  If you expect high traffic or are embedding many shortcodes on the same page, you can request a quota increase in Google Cloud Console under **APIs & Services → Quotas**.
+</Note>
+
+## Alternative: define the key in `wp-config.php`
+
+If you prefer not to store the API key in the WordPress database, you can define it as a PHP constant. The plugin checks for this constant before falling back to shortcode attributes.
+
+```php wp-config.php
+define('ESQUINA_YT_API_KEY', 'your_api_key_here');
+```
+
+<Tip>
+  Defining credentials in `wp-config.php` keeps them out of the database and out of WordPress exports. Make sure `wp-config.php` is not publicly accessible — it never should be, but double-check your server configuration if you are on shared hosting.
+</Tip>
+
+The plugin resolves the API key using the following priority chain:
+
+1. **Admin DB option** — `esquina_youtube_settings[api_key]` (set via **EsquinaWeb → YouTube**)
+2. **`wp-config.php` constant** — `ESQUINA_YT_API_KEY`
+3. **Shortcode attribute** — `api_key="…"` (least secure — avoid in production)
+
+<CardGroup cols={2}>
+  <Card title="YouTube Long Videos Shortcode" icon="film" href="/shortcodes/youtube-largo">
+    Reference for the `[youtube_largo]` shortcode parameters and examples.
+  </Card>
+  <Card title="YouTube Shorts Shortcode" icon="bolt" href="/shortcodes/youtube-shorts">
+    Reference for the `[youtube_shorts]` shortcode parameters and examples.
+  </Card>
+  <Card title="Security Best Practices" icon="shield" href="/guides/security-best-practices">
+    How to store your API key safely and avoid exposing it in page source.
+  </Card>
+  <Card title="Performance Tips" icon="gauge" href="/guides/performance-tips">
+    Caching behaviour and tuning recommendations for the YouTube feed.
+  </Card>
+</CardGroup>

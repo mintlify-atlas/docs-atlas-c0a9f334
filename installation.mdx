@@ -1,0 +1,97 @@
+---
+title: "Install Esquina Shortcodes Plugin on WordPress"
+sidebarTitle: "Installation"
+description: "Install the Esquina Shortcodes Plugin on WordPress 6+ and PHP 8+ using a ZIP upload or Git clone. Activate and access the EsquinaWeb admin dashboard."
+---
+
+Installing the Esquina Shortcodes Plugin takes only a few minutes. You can upload a release ZIP through the standard WordPress plugin installer, or clone the repository directly into your `wp-content/plugins/` directory if you prefer a Git-based workflow. Either way, the plugin activates like any other WordPress plugin and immediately registers all six shortcodes along with the EsquinaWeb admin menu.
+
+## Requirements
+
+Before installing, confirm your environment meets the following minimum versions:
+
+| Requirement | Minimum version |
+|---|---|
+| WordPress | **6.0** |
+| PHP | **8.0** |
+| Internet access | Required for YouTube Data API v3 and Facebook Graph API calls |
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="Method 1 — ZIP Upload">
+    This is the standard WordPress plugin installation path and requires no command-line access.
+
+    <Steps>
+      <Step title="Download the latest release ZIP">
+        Go to the releases page and download the most recent stable release:
+
+        ```txt
+        https://github.com/Jhon-mantila/pluging-wordpress/releases
+        ```
+
+        Save the `.zip` file to your computer. Do not unzip it — WordPress will handle that automatically.
+      </Step>
+      <Step title="Open the WordPress plugin uploader">
+        Log into your WordPress admin panel, then navigate to:
+
+        **Plugins → Add New Plugin → Upload Plugin**
+
+        Click **Choose File**, select the `.zip` file you downloaded, then click **Install Now**.
+      </Step>
+      <Step title="Activate the plugin">
+        Once WordPress confirms the upload was successful, click **Activate Plugin**. The plugin is now active and all six shortcodes are available across your site.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Method 2 — Git Clone">
+    This method is ideal for developers who want to track updates via Git or contribute to the plugin.
+
+    <Steps>
+      <Step title="Clone the repository into your plugins directory">
+        Open a terminal, navigate to your WordPress installation root, and run:
+
+        ```bash
+        git clone https://github.com/Jhon-mantila/pluging-wordpress.git wp-content/plugins/esquina-shortcodes
+        ```
+
+        This places the plugin files directly inside `wp-content/plugins/esquina-shortcodes/`.
+      </Step>
+      <Step title="Set correct file permissions">
+        Ensure the web server has read access to the cloned directory. On most Linux servers:
+
+        ```bash
+        chmod -R 755 wp-content/plugins/esquina-shortcodes
+        ```
+      </Step>
+      <Step title="Activate the plugin from the WordPress admin">
+        Log into your WordPress admin panel, navigate to **Plugins → Installed Plugins**, locate **Mis funciones** (Esquina Shortcodes Plugin) in the list, and click **Activate**.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## After Activation
+
+Once the plugin is active, a new top-level menu item labelled **EsquinaWeb** appears in the WordPress admin sidebar (look for the superhero icon). It contains the following sub-menu pages:
+
+| Sub-menu | Purpose |
+|---|---|
+| **EsquinaWeb** (dashboard) | Links to official sites, social profiles, documentation, and release pages |
+| **YouTube** | Configure YouTube Data API v3 credentials and default shortcode values |
+| **Facebook** | Configure Facebook Graph API token, Page ID, and pagination defaults |
+| **Recomendaciones** | Configure the automatic post-recommendation widget shown at the end of single posts |
+
+<Note>
+  The plugin stores all API credentials — YouTube API Key, Facebook Access Token, and related settings — directly in the WordPress database via the standard options API. You never need to paste a key or token into shortcode markup. Shortcodes read credentials from the saved options automatically, keeping sensitive values out of your templates and version-controlled files.
+</Note>
+
+## Next Step
+
+<Card
+  title="Configure API Keys and Plugin Settings"
+  icon="gear"
+  href="/configuration"
+>
+  Set up your YouTube Data API v3 key, Facebook Graph API token, and recommendation widget defaults from the EsquinaWeb admin panel.
+</Card>

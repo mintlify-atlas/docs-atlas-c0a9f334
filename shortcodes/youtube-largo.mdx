@@ -1,0 +1,186 @@
+---
+title: "youtube_largo Shortcode — Long YouTube Video Grid"
+sidebarTitle: "youtube_largo"
+description: "Embed a responsive grid of long YouTube videos (over 60 seconds) using the youtube_largo shortcode with YouTube Data API v3 and AJAX batch loading."
+---
+
+The `[youtube_largo]` shortcode renders a responsive CSS grid of long-form YouTube videos — specifically any video whose duration exceeds 60 seconds. It reads your channel's uploads playlist via the YouTube Data API v3 `playlistItems` endpoint (never `search.list`), resolves durations through `videos.list`, and caches results in WordPress transients. When unlimited mode is enabled, additional videos load on demand via AJAX without ever exposing your API key to the browser.
+
+## Basic Usage
+
+```txt
+[youtube_largo channel_id="UCxxxx" api_key="xxxx" max="6" columns="3"]
+```
+
+## Parameters
+
+<ParamField query="channel_id" type="string" required>
+  The YouTube channel ID, which must begin with `UC` (e.g. `UCxxxxxxxxxxxxxxxxxxxxxx`). Falls back to the admin setting `esquina_youtube_settings[channel_id]` when omitted from the shortcode, so you can leave this out if you have pre-configured it in **EsquinaWeb → YouTube**.
+</ParamField>
+
+<ParamField query="api_key" type="string" required>
+  A valid YouTube Data API v3 key. The plugin resolves the key using the following priority chain:
+
+  1. `esquina_youtube_settings[api_key]` stored in the WordPress database (admin settings).
+  2. The `ESQUINA_YT_API_KEY` PHP constant defined in `wp-config.php`.
+  3. The `api_key` attribute passed directly to the shortcode.
+
+  If none of these is set, the shortcode outputs an error message.
+</ParamField>
+
+<ParamField query="max" type="string" default="6">
+  Maximum number of long videos to display. Accepted values:
+
+  - Any integer from `1` to `100`.
+  - `"all"` or `"0"` — unlimited mode: the grid loads the first `batch` videos immediately and provides a **Load More** button that fetches additional videos via AJAX.
+</ParamField>
+
+<ParamField query="columns" type="integer" default="3">
+  Number of columns in the video grid. Accepts `1` through `6`. The value is applied directly as the CSS custom property `--esquina-yt-columns` on the wrapper element. The grid collapses to 2 columns on screens ≤ 768 px and to 1 column on screens ≤ 480 px regardless of this setting.
+</ParamField>
+
+<ParamField query="batch" type="integer" default="max(columns × 2, 6)">
+  Number of videos fetched per AJAX request when `max="all"`. Accepts `1` through `50`. Defaults to the larger of `columns × 2` or `6`. This parameter is ignored when `max` is a fixed number.
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```txt Limited — 6 videos, 3 columns
+[youtube_largo channel_id="UCxxxx" api_key="YOUR_API_KEY" max="6" columns="3"]
+```
+
+```txt Custom grid — 4 columns, 12 videos
+[youtube_largo channel_id="UCxxxx" api_key="YOUR_API_KEY" max="12" columns="4"]
+```
+
+```txt Unlimited with batch loading
+[youtube_largo channel_id="UCxxxx" api_key="YOUR_API_KEY" max="all" batch="8" columns="3"]
+```
+
+</CodeGroup>
+
+## How It Works
+
+<Steps>
+
+### Convert channel ID to uploads playlist ID
+
+The plugin converts the channel ID (`UC…`) to the corresponding uploads playlist ID (`UU…`) by replacing the first two characters — no API call is required. The result is cached in a WordPress transient for 24 hours.
+
+### Fetch playlist pages
+
+One page of up to 50 video IDs is retrieved at a time from the `playlistItems` endpoint (1 quota unit per page). Pages are read sequentially until enough qualifying videos have been collected, up to a hard limit of 15 pages per request.
+
+### Resolve durations in batches
+
+Each batch of up to 50 video IDs is sent to the `videos.list` endpoint (`part=snippet,contentDetails`) to retrieve duration and thumbnail data. The ISO 8601 duration string is parsed using PHP's `DateInterval` and converted to seconds.
+
+### Filter long videos
+
+Only videos with a duration **greater than 60 seconds** (`ESQUINA_YT_SHORT_MAX_SECONDS = 60`) are kept. Videos with a zero or unresolvable duration are discarded.
+
+### Cache results
+
+The filtered video list is stored in a WordPress transient for **12 hours** (`ESQUINA_YT_CACHE_TTL`). Subsequent page loads within that window make no API calls.
+
+### Create server-side session (unlimited mode)
+
+When `max="all"`, the plugin generates a UUID session ID with `wp_generate_uuid4()` and stores the API key, channel ID, and mode securely in a WordPress transient keyed to that UUID (valid for 1 hour). The browser only ever receives the session UUID — the API key is never sent to the client.
+
+### Render the grid
+
+Each video is rendered as a `<button class="esquina-yt__card">` inside a CSS grid. Hovering a card for 200 ms triggers a muted inline preview iframe; clicking opens a full modal player.
+
+</Steps>
+
+## Admin Defaults
+
+Every shortcode parameter can be pre-configured in the WordPress admin panel at **EsquinaWeb → YouTube**, so you can drop the shortcode into any post or page with no attributes at all:
+
+```txt
+[youtube_largo]
+```
+
+The admin settings store the following options in `esquina_youtube_settings`:
+
+| Admin field | Option key | Shortcode attribute |
+|---|---|---|
+| API Key | `api_key` | `api_key` |
+| Channel ID | `channel_id` | `channel_id` |
+| Máximo Videos Largos | `max_largos` | `max` |
+| Columnas Largos | `columns_largos` | `columns` |
+| Batch Largos | `batch_largos` | `batch` |
+
+<Tip>
+  Configure your API key and channel ID once under **EsquinaWeb → YouTube** so every `[youtube_largo]` and `[youtube_shorts]` shortcode on your site works without any attributes. Shortcode attributes always override the admin defaults when both are present.
+</Tip>
+
+## AJAX Endpoint
+
+When unlimited mode is active, the JavaScript frontend calls the following WordPress AJAX endpoint to load additional video cards:
+
+| Property | Value |
+|---|---|
+| Action | `esquina_yt_more` |
+| Hooks | `wp_ajax_esquina_yt_more`, `wp_ajax_nopriv_esquina_yt_more` |
+| Method | `POST` |
+| URL | `admin-ajax.php` |
+| Nonce action | `esquina_yt_feed` |
+
+**POST parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `action` | string | Always `esquina_yt_more` |
+| `nonce` | string | WordPress nonce verified against `esquina_yt_feed` |
+| `session` | string | UUID issued by the server on initial page render |
+| `page_token` | string | YouTube `nextPageToken` from the previous response |
+| `batch` | integer | Number of videos to load (1–50) |
+
+**JSON response (success):**
+
+```js
+{
+  "success": true,
+  "data": {
+    "html": "<button class=\"esquina-yt__card\">…</button>",
+    "next_page_token": "CAoQAA",
+    "has_more": true,
+    "count": 8
+  }
+}
+```
+
+<Warning>
+  Sessions expire after **1 hour**. If a visitor leaves the page open for more than an hour and then clicks **Load More**, the AJAX handler will return a `403` error with `"Session expired"`. A page refresh creates a new session.
+</Warning>
+
+## CSS Classes
+
+The shortcode outputs the following class structure, which you can use to customise the appearance via your theme stylesheet.
+
+| Class | Element | Description |
+|---|---|---|
+| `.esquina-yt` | Wrapper `<div>` | Root element; carries `--esquina-yt-columns` CSS custom property |
+| `.esquina-yt--long` | Modifier on wrapper | Identifies the long-video variant; sets `aspect-ratio: 16 / 9` on thumbnails |
+| `.esquina-yt__rail` | Grid `<div>` | CSS grid container (`display: grid`) |
+| `.esquina-yt__card` | `<button>` | Individual video card; interactive element |
+| `.esquina-yt__thumb-wrap` | `<span>` inside card | Aspect-ratio container for thumbnail and preview iframe |
+| `.esquina-yt__thumb` | `<img>` | Static thumbnail image (`loading="lazy"`) |
+| `.esquina-yt__preview` | `<span>` | Invisible container; receives the muted preview iframe on hover |
+| `.esquina-yt__title` | `<span>` | Video title; two-line clamp via `-webkit-line-clamp` |
+| `.esquina-yt__more-wrap` | `<div>` | Wraps the load-more button (unlimited mode only) |
+| `.esquina-yt__load-more` | `<button>` | "Load more videos" button; hidden when no more pages exist |
+| `.esquina-yt-modal` | `<div>` | Fixed-position modal dialog; toggled via `hidden` attribute |
+| `.esquina-yt-modal__backdrop` | `<div>` | Semi-transparent overlay behind the modal |
+| `.esquina-yt-modal__dialog` | `<div>` | Modal content box (max 960 px wide) |
+| `.esquina-yt-modal__close` | `<button>` | Close button (×) in the top-right corner |
+| `.esquina-yt-modal__embed` | `<div>` | 16:9 iframe container inside the modal |
+| `.esquina-yt-modal__heading` | `<h2>` | Video title inside the modal footer |
+| `.esquina-yt-modal__link` | `<a>` | "Watch on YouTube" link inside the modal footer |
+
+<Note>
+  The grid collapses automatically at smaller viewports: 2 columns at ≤ 768 px and 1 column at ≤ 480 px. These breakpoints are defined in `assets/css/youtube-feed.css` and are not configurable through shortcode attributes.
+</Note>

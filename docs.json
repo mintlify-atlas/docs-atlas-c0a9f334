@@ -1,72 +1,68 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Esquina Shortcodes Plugin",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#bd8236",
+    "light": "#dad2cb"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
+  "favicon": "https://media.brand.dev/1f8dab95-3a52-4743-a7cc-db3a24ec410f.png",
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/Jhon-mantila/pluging-wordpress"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/Jhon-mantila/pluging-wordpress"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "configuration"
+            ]
+          },
+          {
+            "group": "Shortcodes",
+            "pages": [
+              "shortcodes/youtube-largo",
+              "shortcodes/youtube-shorts",
+              "shortcodes/facebook-posts",
+              "shortcodes/categorias-grid",
+              "shortcodes/category-post-count",
+              "shortcodes/ultimas-entradas"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/recomendaciones",
+              "features/admin-panel",
+              "features/ajax-loading",
+              "features/caching"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/youtube-api-setup",
+              "guides/facebook-api-setup",
+              "guides/security-best-practices",
+              "guides/performance-tips",
+              "guides/uninstall"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

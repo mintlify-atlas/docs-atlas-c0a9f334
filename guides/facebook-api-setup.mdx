@@ -1,0 +1,112 @@
+---
+title: "Set Up Facebook Graph API for the Plugin"
+sidebarTitle: "Facebook API Setup"
+description: "Create a Facebook app, generate a Page Access Token for Graph API v25.0, and configure it securely in the Esquina Shortcodes Plugin."
+---
+
+The `[facebook_posts]` shortcode fetches posts from a Facebook Page using the Facebook Graph API v25.0. To use it you need a Page Access Token with the `pages_read_engagement` permission. This guide explains how to create a Facebook app, generate the token, and configure it in WordPress.
+
+## What you need
+
+- A Facebook account with **Admin** access to the Facebook Page whose posts you want to display
+- A Facebook Developer account (free — register at [developers.facebook.com](https://developers.facebook.com/))
+- A Facebook app of type **Business**
+- A Page Access Token with the `pages_read_engagement` permission
+- Your numeric Facebook **Page ID**
+
+## Steps
+
+<Steps>
+  <Step title="Log in to Facebook Developers">
+    Go to [https://developers.facebook.com/](https://developers.facebook.com/) and log in with your Facebook account. If you have not registered as a developer before, follow the prompt to complete registration — it only takes a moment.
+  </Step>
+
+  <Step title="Create a new app">
+    Click **My Apps → Create App**. On the "What do you want your app to do?" screen choose **Other**, then select the **Business** app type and click **Next**. Give your app a name (e.g. `My WordPress Site`), enter a contact email, and click **Create App**.
+  </Step>
+
+  <Step title="Add the Facebook Login product">
+    In the app dashboard, scroll down to the **Add Products to Your App** section and click **Set Up** next to **Facebook Login**. This product unlocks the ability to request page permissions and generate access tokens.
+  </Step>
+
+  <Step title="Open Graph API Explorer">
+    In the top navigation click **Tools** and select **Graph API Explorer**, or go directly to [https://developers.facebook.com/tools/explorer/](https://developers.facebook.com/tools/explorer/).
+  </Step>
+
+  <Step title="Select your app and page">
+    In the **Meta App** dropdown at the top-right of the Explorer, select the app you just created. In the **User or Page** dropdown, select the Facebook Page you want to display posts from.
+  </Step>
+
+  <Step title="Request the pages_read_engagement permission">
+    Click **Add a Permission** and search for `pages_read_engagement`. Select it. Then click **Generate Access Token**. Facebook will ask you to log in and approve the requested permissions for your page.
+  </Step>
+
+  <Step title="Exchange for a long-lived token (recommended)">
+    The token generated in the Explorer is short-lived (~1 hour). To exchange it for a long-lived token (~60 days), open the **Access Token Debugger** at [https://developers.facebook.com/tools/debug/accesstoken/](https://developers.facebook.com/tools/debug/accesstoken/), paste your short-lived token, and use the **Extend Access Token** button at the bottom of the page. Copy the resulting long-lived token.
+  </Step>
+
+  <Step title="Find your Page ID">
+    Your numeric Page ID can be found in **Facebook Page Settings → Page Info** under "Facebook Page ID". Alternatively, look at your page's URL — for pages that still show a numeric slug the ID is the number in the URL. For named pages (e.g. `facebook.com/mypage`), use the Graph API Explorer to query `/{page-name}?fields=id` and read the `id` field from the response.
+  </Step>
+
+  <Step title="Save the token and Page ID in WordPress">
+    In your WordPress dashboard go to **EsquinaWeb → Facebook**, paste the **Page Access Token** and the **Page ID** into their respective fields, and click **Save**.
+  </Step>
+</Steps>
+
+## Understanding token types
+
+<Note>
+  **Short-lived tokens** expire after approximately 1 hour and are only suitable for testing. **Long-lived tokens** last approximately 60 days and are intended for production use. For fully automated deployments — where you cannot manually refresh the token every 60 days — consider creating a **System User token** through Meta Business Suite, which does not expire. Regardless of token type, never put the token directly in shortcode attributes or post content.
+</Note>
+
+## Finding your Page ID from a URL
+
+For pages with a numeric URL slug (e.g. `https://www.facebook.com/631930116676494`), the number in the URL is your Page ID.
+
+For pages with a named slug (e.g. `https://www.facebook.com/mypagename`), use the Graph API Explorer to query:
+
+```txt
+/mypagename?fields=id
+```
+
+The response will contain your numeric Page ID:
+
+```txt
+{
+  "id": "631930116676494"
+}
+```
+
+## Alternative: define the token in `wp-config.php`
+
+Storing the token in `wp-config.php` keeps it out of the WordPress database and out of any database exports or backups.
+
+```php wp-config.php
+define('ESQUINA_FB_PAGE_ACCESS_TOKEN', 'your_page_access_token_here');
+```
+
+The plugin resolves the access token using the following priority chain:
+
+1. **Admin DB option** — `esquina_facebook_settings[access_token]` (set via **EsquinaWeb → Facebook**)
+2. **`wp-config.php` constant** — `ESQUINA_FB_PAGE_ACCESS_TOKEN`
+3. **WordPress filter** — `esquina_fb_access_token`
+
+<Warning>
+  **Never put your access token in shortcode attributes.** The shortcode is stored in post content, which is visible to any user with the `edit_posts` capability, appears in database exports, and may be cached in plain text. Always configure the token through the admin settings page or `wp-config.php`.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Facebook Posts Shortcode" icon="square-facebook" href="/shortcodes/facebook-posts">
+    Reference for the `[facebook_posts]` shortcode parameters and examples.
+  </Card>
+  <Card title="Security Best Practices" icon="shield" href="/guides/security-best-practices">
+    Full credential storage guidance and AJAX nonce protection details.
+  </Card>
+  <Card title="Performance Tips" icon="gauge" href="/guides/performance-tips">
+    Caching behaviour and tuning recommendations for the Facebook feed.
+  </Card>
+  <Card title="Admin Panel" icon="sliders" href="/features/admin-panel">
+    Overview of the EsquinaWeb admin settings panel.
+  </Card>
+</CardGroup>

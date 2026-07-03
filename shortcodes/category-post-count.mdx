@@ -1,0 +1,45 @@
+---
+title: "category_post_count Shortcode — Inline Post Counter"
+sidebarTitle: "category_post_count"
+description: "Output the published post count for any WordPress category by slug using the category_post_count shortcode. Returns a plain integer for use inline in text."
+---
+
+The `category_post_count` shortcode returns the number of published posts in a WordPress category as a plain integer — no surrounding markup, no labels. Because it outputs only a number, it is designed to be embedded directly inside sentences, headings, or alongside other content. Internally, the shortcode calls `get_term_by('slug', ...)` to locate the category term and reads the `$term->count` property, which WordPress keeps up to date automatically. If the `category` attribute is omitted or the given slug does not match any existing category, the shortcode outputs `0`.
+
+## Basic Usage
+
+```txt
+[category_post_count category="anime"]
+```
+
+## Parameters
+
+<ParamField query="category" type="string" required>
+  The slug of the WordPress category whose post count you want to display. The slug is the URL-friendly identifier WordPress assigns to each category (e.g., `anime`, `gaming`, `noticias`). Returns `0` if the attribute is not provided or if no category with the given slug exists.
+</ParamField>
+
+## Usage Examples in Context
+
+Embed the count naturally inside a sentence:
+
+```txt
+Hay [category_post_count category="anime"] artículos de anime en este sitio.
+```
+
+Display counts for multiple categories side by side:
+
+```txt
+Anime: [category_post_count category="anime"] | Gaming: [category_post_count category="gaming"]
+```
+
+Use inside a heading or callout block:
+
+```txt
+¡Ya tenemos [category_post_count category="reseñas"] reseñas publicadas!
+```
+
+## Finding a Category Slug
+
+<Tip>
+The category slug is the URL-friendly identifier shown in the category archive URL. For example, if a category archive lives at `https://mysite.com/category/anime/`, its slug is `anime`. You can also find and edit slugs in your WordPress dashboard under **Posts → Categories** — the slug appears in the dedicated **Slug** column of the categories table.
+</Tip>

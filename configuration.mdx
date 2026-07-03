@@ -1,0 +1,199 @@
+---
+title: "Configure API Keys and Plugin Settings"
+sidebarTitle: "Configuration"
+description: "Configure YouTube Data API v3 keys, Facebook Graph API tokens, and recommendation settings for the Esquina Shortcodes Plugin from the WordPress admin panel."
+---
+
+After activating the plugin, the first thing to do is supply your API credentials and adjust the default shortcode values to match your site's content strategy. All settings are managed from the **EsquinaWeb** admin menu. The plugin supports three credential delivery methods — the admin settings panel, `wp-config.php` constants, and a WordPress filter — giving you full control over how sensitive keys are stored and deployed.
+
+## Admin Panel Settings
+
+Navigate to **EsquinaWeb** in your WordPress admin sidebar to access the three settings pages described below.
+
+---
+
+### YouTube Settings
+
+**EsquinaWeb → YouTube** — settings stored under the WordPress option key `esquina_youtube_settings`.
+
+<ParamField body="api_key" type="string" required>
+  Your YouTube Data API v3 key, obtained from [Google Cloud Console](https://console.cloud.google.com/). Stored as a password field in the admin UI. Takes priority over the `ESQUINA_YT_API_KEY` wp-config.php constant when both are present.
+</ParamField>
+
+<ParamField body="channel_id" type="string" required>
+  The YouTube Channel ID (begins with `UC`) whose uploads playlist the shortcodes will read. Example: `UCxxxxxxxxxxxxxxxxxxxx`.
+</ParamField>
+
+<ParamField body="max_largos" type="integer" default="6">
+  Maximum number of standard (long) videos to fetch. Accepted range: **1 – 100**. Pass `max="all"` in the shortcode to override and fetch the entire playlist.
+</ParamField>
+
+<ParamField body="columns_largos" type="integer" default="3">
+  Number of grid columns for the `youtube_largo` shortcode. Accepted range: **1 – 6**.
+</ParamField>
+
+<ParamField body="batch_largos" type="integer" default="6">
+  Number of videos loaded per AJAX request for the `youtube_largo` shortcode. Accepted range: **1 – 50**.
+</ParamField>
+
+<ParamField body="max_shorts" type="integer" default="6">
+  Maximum number of Shorts to fetch. Accepted range: **1 – 100**.
+</ParamField>
+
+<ParamField body="columns_shorts" type="integer" default="4">
+  Number of grid columns for the `youtube_shorts` shortcode. Accepted range: **1 – 6**.
+</ParamField>
+
+<ParamField body="batch_shorts" type="integer" default="8">
+  Number of Shorts loaded per AJAX request for the `youtube_shorts` shortcode. Accepted range: **1 – 50**.
+</ParamField>
+
+---
+
+### Facebook Settings
+
+**EsquinaWeb → Facebook** — settings stored under the WordPress option key `esquina_facebook_settings`.
+
+<ParamField body="access_token" type="string" required>
+  A valid Facebook Page Access Token with `pages_read_engagement` permission, obtained from the [Meta for Developers](https://developers.facebook.com/) portal. Stored as a password field in the admin UI.
+</ParamField>
+
+<ParamField body="page_id" type="string" required>
+  The numeric ID of your Facebook Page. Example: `631930116676494`.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="25">
+  Total maximum number of posts to retrieve from the Graph API in a single session. Accepted range: **1 – 100**.
+</ParamField>
+
+<ParamField body="per_page" type="integer" default="4">
+  Number of posts displayed per page / per AJAX load-more batch. Accepted range: **1 – 20**.
+</ParamField>
+
+---
+
+### Recomendaciones Settings
+
+**EsquinaWeb → Recomendaciones** — settings stored under the WordPress option key `esquina_recomendaciones_settings`. This widget automatically appends related or recent post recommendations at the end of single post pages.
+
+<ParamField body="enabled" type="boolean" default="false">
+  Master toggle. Check the box to activate the automatic recommendations widget on single post pages.
+</ParamField>
+
+<ParamField body="title" type="string" default="Recomendaciones">
+  Heading text displayed above the recommendations block.
+</ParamField>
+
+<ParamField body="posts_per_page" type="integer" default="6">
+  Number of posts shown in the recommendations block. Available options: **2, 3, 4, 5, 6, 8**.
+</ParamField>
+
+<ParamField body="mode" type="string" default="latest">
+  Post selection strategy. Options:
+  - `latest` — shows the most recently published posts
+  - `random` — shows a random selection of posts on each page load
+</ParamField>
+
+<ParamField body="layout" type="string" default="grid">
+  Visual layout for the recommendations block. Options:
+  - `grid` — static responsive grid
+  - `carousel` — Netflix-style horizontal carousel with optional autoplay
+</ParamField>
+
+<ParamField body="autoplay" type="boolean" default="false">
+  **Carousel only.** When enabled, the carousel advances automatically. Has no effect when `layout` is set to `grid`.
+</ParamField>
+
+<ParamField body="speed" type="integer" default="5000">
+  **Carousel only.** Autoplay interval in milliseconds. Options: **5000** (slow), **3000** (medium), **2000** (fast).
+</ParamField>
+
+<ParamField body="size" type="string" default="medium">
+  **Carousel only.** Card size in the carousel. Options: `small`, `medium`, `large`.
+</ParamField>
+
+<ParamField body="thumbnail" type="boolean" default="false">
+  When checked, the post featured image is shown on each recommendation card.
+</ParamField>
+
+<ParamField body="category_link" type="boolean" default="false">
+  When checked, a clickable link to the post's primary category is shown on each recommendation card.
+</ParamField>
+
+---
+
+## wp-config.php Constants (Alternative Method)
+
+As an alternative — or supplement — to the admin panel, you can define API credentials directly in your `wp-config.php` file. This approach is common on managed hosting environments where secrets are kept outside the database and outside version control.
+
+```php wp-config.php
+define('ESQUINA_YT_API_KEY', 'your_youtube_api_key_here');
+define('ESQUINA_FB_PAGE_ACCESS_TOKEN', 'your_facebook_token_here');
+```
+
+**Priority rules:**
+
+- **YouTube API Key** — the value saved in the admin panel (`esquina_youtube_settings[api_key]`) takes priority over the `ESQUINA_YT_API_KEY` constant. If the admin option is empty, the constant is used as a fallback.
+- **Facebook Access Token** — the plugin resolves the token in the following order:
+  1. Admin DB option (`esquina_facebook_settings[access_token]`)
+  2. `ESQUINA_FB_PAGE_ACCESS_TOKEN` wp-config.php constant
+  3. Value returned by the `esquina_fb_access_token` WordPress filter
+
+<Tip>
+  Using `wp-config.php` constants keeps secrets out of the database export (`wp export`, Duplicator packages, etc.) and is a good practice for staging/production deployments where the database may be cloned between environments.
+</Tip>
+
+---
+
+## WordPress Filter (Facebook Token)
+
+For maximum flexibility — such as pulling tokens from a secrets manager at runtime — you can supply the Facebook Access Token via the `esquina_fb_access_token` WordPress filter. Add the following to your theme's `functions.php` or a site-specific plugin:
+
+```php
+add_filter('esquina_fb_access_token', function() {
+    return 'your_token_here';
+});
+```
+
+The filter runs as the last fallback, after the admin DB option and the `wp-config.php` constant have both been checked.
+
+<Warning>
+  Never put your Facebook Access Token (or any API key) directly in shortcode attributes in post content, page templates, or theme files. Shortcode attributes are visible to anyone who can view or edit the post, and they may be cached, logged, or included in database exports. Always use the admin settings panel, a `wp-config.php` constant, or the `esquina_fb_access_token` filter to supply credentials. See the [Security Best Practices](/guides/security-best-practices) guide for a full breakdown.
+</Warning>
+
+---
+
+## Next Steps
+
+Once your credentials are saved, you are ready to place shortcodes on your site. Use the links below to explore each shortcode's parameters and examples, or read the API setup guides for step-by-step instructions on obtaining your keys.
+
+<CardGroup cols={2}>
+  <Card
+    title="YouTube API Setup"
+    icon="youtube"
+    href="/guides/youtube-api-setup"
+  >
+    Step-by-step guide to creating a Google Cloud project, enabling YouTube Data API v3, and generating a restricted API key.
+  </Card>
+  <Card
+    title="Facebook API Setup"
+    icon="facebook"
+    href="/guides/facebook-api-setup"
+  >
+    How to create a Meta app, add the Pages API, and generate a long-lived Page Access Token for production use.
+  </Card>
+  <Card
+    title="Security Best Practices"
+    icon="shield-halved"
+    href="/guides/security-best-practices"
+  >
+    Guidelines for storing credentials safely, rotating tokens, and restricting API key permissions.
+  </Card>
+  <Card
+    title="Performance Tips"
+    icon="gauge-high"
+    href="/guides/performance-tips"
+  >
+    Recommendations for tuning transient cache lifetimes, batch sizes, and AJAX settings for high-traffic sites.
+  </Card>
+</CardGroup>

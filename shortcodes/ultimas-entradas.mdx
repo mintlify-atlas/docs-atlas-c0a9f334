@@ -1,0 +1,200 @@
+---
+title: "ultimas_entradas Shortcode — Latest WordPress Posts Widget"
+sidebarTitle: "ultimas_entradas"
+description: "Display the latest published WordPress posts as a vertical list, card grid, or content grid using the ultimas_entradas shortcode with three layout options."
+---
+
+The `ultimas_entradas` shortcode fetches and displays the most recently published WordPress posts — up to 10 — ordered by date descending, with sticky posts ignored. It supports three distinct layout modes: a compact vertical thumbnail list (`vertical`), a rich card grid with category badges and tags (`grid-1`), and a hover-reveal card grid with post dates (`grid-2`). Each layout loads its own dedicated CSS file automatically when the shortcode is rendered.
+
+## Basic Usage
+
+```txt
+[ultimas_entradas number="5"]
+```
+
+## Parameters
+
+<ParamField query="number" type="integer" default="5">
+  Number of posts to display. Accepts values from **1** to **10**. Values outside this range are clamped automatically.
+</ParamField>
+
+<ParamField query="layout" type="string" default="vertical">
+  Display layout to use. One of:
+  - `vertical` — horizontal list items with a thumbnail on the left and the post title on the right. Loads `assets/css/ultimas-entradas.css`.
+  - `grid-1` — card grid with a category badge overlay on the image, an 18-word excerpt, category tag pills, and a "Leer más" button. Loads `assets/css/ultimas-entradas/grid-1.css`.
+  - `grid-2` — clean card grid with a hover-reveal effect, post date, and "Leer más" button. No category tags. Loads `assets/css/ultimas-entradas/grid-2.css`.
+</ParamField>
+
+<ParamField query="columns" type="integer" default="3">
+  Number of grid columns for `grid-1` and `grid-2` layouts. Accepts values from **1** to **6**. This parameter is ignored when `layout="vertical"`. The CSS custom property `--columns` is set inline on the grid wrapper element.
+</ParamField>
+
+<ParamField query="width" type="integer" default="100">
+  Thumbnail width in pixels for the `vertical` layout. Accepts values from **48** to **200**. When `footer="true"` is set and no explicit `width` is provided, the default drops to **88px**.
+</ParamField>
+
+<ParamField query="height" type="integer" default="75">
+  Thumbnail height in pixels for the `vertical` layout. Accepts values from **48** to **200**. When `footer="true"` is set and no explicit `height` is provided, the default drops to **66px**.
+</ParamField>
+
+<ParamField query="footer" type="boolean" default="false">
+  Enables compact mode for sidebar or footer placement. When `true`:
+  - Reduces default thumbnail dimensions to **88×66px** (unless `width`/`height` are explicitly set).
+  - Adds the `esquina-ultimas--footer` CSS modifier class to the wrapper.
+  - Applies lighter font weight and tighter spacing via CSS.
+</ParamField>
+
+<ParamField query="title_color" type="string" default="">
+  Hex color for post titles in the `vertical` layout (e.g., `#ffffff` or `#fff`). Accepts `#RGB` or `#RRGGBB` format. When a valid color is provided:
+  - The `--esquina-ultimas-title-color` CSS custom property is set inline on the wrapper.
+  - The `esquina-ultimas--has-title-color` modifier class is added to the wrapper.
+  - The color overrides theme-level link color rules, including inside `<footer>` elements.
+</ParamField>
+
+## Layout Comparison
+
+<Tabs>
+  <Tab title="vertical (default)">
+    Renders a stacked vertical list where each item is a horizontal row: the post thumbnail sits on the left, and the post title sits on the right. Ideal for sidebars and footer widget areas.
+
+    **CSS file loaded:** `assets/css/ultimas-entradas.css`
+
+    **CSS custom properties (set inline on the wrapper):**
+
+    | Property | Description |
+    |---|---|
+    | `--esquina-ultimas-w` | Thumbnail width (from `width` attribute) |
+    | `--esquina-ultimas-h` | Thumbnail height (from `height` attribute) |
+    | `--esquina-ultimas-title-color` | Title color (only when `title_color` is set) |
+
+    **CSS classes:**
+
+    | Class | Element |
+    |---|---|
+    | `.esquina-ultimas` | Outer wrapper `<div>` |
+    | `.esquina-ultimas__item` | Per-post row wrapper |
+    | `.esquina-ultimas__link` | Anchor wrapping the entire item |
+    | `.esquina-ultimas__thumb` | `<span>` wrapping the `<img>` |
+    | `.esquina-ultimas__title` | `<span>` holding the post title |
+
+    **Modifier classes:**
+
+    | Class | Applied when |
+    |---|---|
+    | `.esquina-ultimas--footer` | `footer="true"` |
+    | `.esquina-ultimas--has-title-color` | A valid `title_color` is provided |
+
+    ```txt
+    [ultimas_entradas number="5" layout="vertical"]
+    ```
+  </Tab>
+  <Tab title="grid-1">
+    Renders a responsive CSS grid of cards. Each card features a square image with an absolute-positioned category badge overlay in the top-left corner, the post title, an 18-word excerpt, category tag pills, and a "Leer más" call-to-action button. Cards lift on hover with a `translateY` transition.
+
+    **CSS file loaded:** `assets/css/ultimas-entradas/grid-1.css`
+
+    **CSS custom property (set inline on the wrapper):**
+
+    | Property | Description |
+    |---|---|
+    | `--columns` | Number of columns (from `columns` attribute) |
+
+    Responsive breakpoints collapse the grid to 2 columns below 1024px and to 1 column below 768px.
+
+    **CSS classes:**
+
+    | Class | Element |
+    |---|---|
+    | `.esquina-grid-1` | Outer grid wrapper `<div>` |
+    | `.esquina-grid1-card` | Per-post `<article>` |
+    | `.esquina-grid1-image` | Anchor wrapping the post image |
+    | `.esquina-grid1-category` | Category badge overlay `<span>` |
+    | `.esquina-grid1-content` | Text content area `<div>` |
+    | `.esquina-grid1-excerpt` | Excerpt `<p>` |
+    | `.esquina-grid1-meta` | Category tags container `<div>` |
+    | `.esquina-grid1-tag` | Individual category pill `<span>` |
+    | `.esquina-grid1-button` | "Leer más" anchor |
+
+    ```txt
+    [ultimas_entradas number="6" layout="grid-1" columns="3"]
+    ```
+  </Tab>
+  <Tab title="grid-2">
+    Renders a CSS grid of tall cards (2:3 aspect ratio) with a dark gradient overlay at the bottom. Post title, excerpt, date, and "Leer más" button are hidden by default and animate into view on hover. The gradient fades out and the content area expands with a white background on hover.
+
+    **CSS file loaded:** `assets/css/ultimas-entradas/grid-2.css`
+
+    **CSS custom property (set inline on the wrapper):**
+
+    | Property | Description |
+    |---|---|
+    | `--columns` | Number of columns (from `columns` attribute) |
+
+    Responsive breakpoints collapse the grid to 2 columns below 600px and to 1 column below 400px.
+
+    **CSS classes:**
+
+    | Class | Element |
+    |---|---|
+    | `.esquina-grid-2` | Outer grid wrapper `<div>` |
+    | `.esquina-grid2-card` | Per-post `<article>` |
+    | `.esquina-grid2-image` | Anchor wrapping the post image |
+    | `.esquina-grid2-content` | Absolutely positioned content overlay `<section>` |
+    | `.esquina-grid2-excerpt` | Excerpt `<p>` |
+    | `.esquina-grid2-footer` | Date + button row `<div>` |
+    | `.esquina-grid2-date` | Post date `<span>` |
+    | `.esquina-grid2-button` | "Leer más" anchor |
+
+    ```txt
+    [ultimas_entradas number="8" layout="grid-2" columns="4"]
+    ```
+  </Tab>
+</Tabs>
+
+## Examples
+
+<CodeGroup>
+
+```txt Sidebar compact list
+[ultimas_entradas number="5" footer="true"]
+```
+
+```txt Footer compact list
+[ultimas_entradas number="6" footer="true"]
+```
+
+```txt Grid 1 — 3 columns
+[ultimas_entradas number="6" layout="grid-1" columns="3"]
+```
+
+```txt Grid 2 — 4 columns
+[ultimas_entradas number="8" layout="grid-2" columns="4"]
+```
+
+```txt Custom thumbnail size
+[ultimas_entradas number="5" width="120" height="90"]
+```
+
+```txt Custom title color
+[ultimas_entradas number="6" title_color="#ffffff"]
+```
+
+</CodeGroup>
+
+## Thumbnail Fallback
+
+<Note>
+  In the `vertical` layout, if a post has no featured image the shortcode falls back to a placeholder image at `https://via.placeholder.com/{width}x{height}`, with the first three words of the post title appended as the placeholder label. The `grid-1` and `grid-2` layouts simply show no image when no featured image is available.
+</Note>
+
+## Empty State
+
+If no published posts are found, the shortcode returns a single paragraph instead of a layout:
+
+```php
+<p class="esquina-ultimas__empty">No hay entradas publicadas.</p>
+```
+
+<Tip>
+  Combine `footer="true"` with an explicit `title_color` to keep post titles legible against dark footer backgrounds — for example, `[ultimas_entradas number="5" footer="true" title_color="#ffffff"]`.
+</Tip>
