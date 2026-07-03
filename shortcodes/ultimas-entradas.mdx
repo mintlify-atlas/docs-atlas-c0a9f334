@@ -29,12 +29,12 @@ The `ultimas_entradas` shortcode fetches and displays the most recently publishe
   Number of grid columns for `grid-1` and `grid-2` layouts. Accepts values from **1** to **6**. This parameter is ignored when `layout="vertical"`. The CSS custom property `--columns` is set inline on the grid wrapper element.
 </ParamField>
 
-<ParamField query="width" type="integer" default="100">
-  Thumbnail width in pixels for the `vertical` layout. Accepts values from **48** to **200**. When `footer="true"` is set and no explicit `width` is provided, the default drops to **88px**.
+<ParamField query="width" type="integer" default="">
+  Thumbnail width in pixels for the `vertical` layout. Accepts values from **48** to **200**. When not provided, defaults to **100px** normally or **88px** when `footer="true"` is set.
 </ParamField>
 
-<ParamField query="height" type="integer" default="75">
-  Thumbnail height in pixels for the `vertical` layout. Accepts values from **48** to **200**. When `footer="true"` is set and no explicit `height` is provided, the default drops to **66px**.
+<ParamField query="height" type="integer" default="">
+  Thumbnail height in pixels for the `vertical` layout. Accepts values from **48** to **200**. When not provided, defaults to **75px** normally or **66px** when `footer="true"` is set.
 </ParamField>
 
 <ParamField query="footer" type="boolean" default="false">

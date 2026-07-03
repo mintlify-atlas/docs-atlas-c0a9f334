@@ -1,5 +1,5 @@
 ---
-title: "youtube_shorts Shortcode — YouTube Shorts Grid"
+title: "youtube_shorts Shortcode — YouTube Shorts Video Grid"
 sidebarTitle: "youtube_shorts"
 description: "Display a portrait-oriented grid of YouTube Shorts (60 seconds or less) with the youtube_shorts shortcode, powered by YouTube Data API v3."
 ---
@@ -40,7 +40,7 @@ The `[youtube_shorts]` shortcode renders a portrait-oriented CSS grid of YouTube
 </ParamField>
 
 <ParamField query="batch" type="integer" default="8">
-  Number of Shorts fetched per AJAX request when `max="all"`. Accepts `1` through `50`. Defaults to **8** (higher than `youtube_largo`'s default batch to compensate for the denser grid). Ignored when `max` is a fixed number.
+  Number of Shorts fetched per AJAX request when `max="all"`. Accepts `1` through `50`. Defaults to **8** (higher than `youtube_largo`'s default of 6 to compensate for the denser grid). Ignored when `max` is a fixed number.
 </ParamField>
 
 ## Examples
@@ -72,7 +72,7 @@ While `[youtube_shorts]` and `[youtube_largo]` share the same underlying render 
 | Thumbnail aspect ratio | `16 / 9` | `9 / 16` |
 | Thumbnail selection | Prefers highest-resolution landscape image (`maxres → standard → high → medium → default`) | **Prefers portrait images** (height > width) from the snippet; falls back to `maxresdefault` CDN URL |
 | Default `columns` | `3` | `4` |
-| Default `batch` | `max(columns × 2, 6)` | `8` |
+| Default `batch` | `6` | `8` |
 | Modal embed aspect ratio | `16 / 9` | `9 / 16`, max-width 400 px |
 | Preview iframe scaling | Fills 16:9 container naturally | 320 % width, centred horizontally to cover the 9:16 container |
 

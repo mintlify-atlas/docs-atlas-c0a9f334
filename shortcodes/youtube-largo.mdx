@@ -39,8 +39,8 @@ The `[youtube_largo]` shortcode renders a responsive CSS grid of long-form YouTu
   Number of columns in the video grid. Accepts `1` through `6`. The value is applied directly as the CSS custom property `--esquina-yt-columns` on the wrapper element. The grid collapses to 2 columns on screens ≤ 768 px and to 1 column on screens ≤ 480 px regardless of this setting.
 </ParamField>
 
-<ParamField query="batch" type="integer" default="max(columns × 2, 6)">
-  Number of videos fetched per AJAX request when `max="all"`. Accepts `1` through `50`. Defaults to the larger of `columns × 2` or `6`. This parameter is ignored when `max` is a fixed number.
+<ParamField query="batch" type="integer" default="6">
+  Number of videos fetched per AJAX request when `max="all"`. Accepts `1` through `50`. Defaults to `6`. This parameter is ignored when `max` is a fixed number.
 </ParamField>
 
 ## Examples

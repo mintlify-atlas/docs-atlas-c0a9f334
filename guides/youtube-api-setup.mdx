@@ -1,5 +1,5 @@
 ---
-title: "Set Up YouTube Data API v3 for the Plugin"
+title: "Set Up YouTube Data API v3 for Esquina Shortcodes Plugin"
 sidebarTitle: "YouTube API Setup"
 description: "Obtain a YouTube Data API v3 key and Channel ID from Google Cloud Console and configure them in the Esquina Shortcodes Plugin admin settings."
 ---
@@ -63,7 +63,7 @@ The plugin derives the uploads playlist ID from the channel ID directly (`UC…`
 
 ## Alternative: define the key in `wp-config.php`
 
-If you prefer not to store the API key in the WordPress database, you can define it as a PHP constant. The plugin checks for this constant before falling back to shortcode attributes.
+If you prefer not to store the API key in the WordPress database, you can define it as a PHP constant. When no value is saved in the admin settings, the plugin checks this constant before falling back to the shortcode `api_key` attribute.
 
 ```php wp-config.php
 define('ESQUINA_YT_API_KEY', 'your_api_key_here');

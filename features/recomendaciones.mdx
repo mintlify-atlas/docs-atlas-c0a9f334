@@ -1,7 +1,7 @@
 ---
-title: "Automatic Related Post Recommendations"
+title: "Automatic Related Post Recommendations for WordPress"
 sidebarTitle: "Recomendaciones"
-description: "Automatically append related post recommendations after every WordPress single post using the Recomendaciones feature, with grid or Netflix-style carousel layouts."
+description: "Automatically append related post recommendations after every WordPress single post using the Recomendaciones feature with grid or carousel layouts."
 ---
 
 The Recomendaciones feature automatically appends a section of related posts at the bottom of every single post on your WordPress site. It hooks into the `the_content` filter, reads the first category of the current post, and renders a curated selection of posts from that same category — without any manual shortcode placement required. You control everything from the **EsquinaWeb → Recomendaciones** admin page.
@@ -113,7 +113,7 @@ The frontend carousel script (`recomendaciones.js`) receives its configuration v
 }
 ```
 
-The `autoplay` field is `true` only when the checkbox is checked **and** the carousel layout is active. The `speed` field defaults to `5000` if no value has been saved.
+The `autoplay` field is `true` whenever the checkbox is checked, regardless of the current layout setting — the JavaScript simply finds no `.esquina-carousel` elements to scroll when the grid layout is active, so the setting has no visible effect in that case. The `speed` field defaults to `5000` if no value has been saved.
 
 ## Single Posts Only
 

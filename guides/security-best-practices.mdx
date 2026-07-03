@@ -52,12 +52,12 @@ Nonces are generated fresh on each page load using `wp_create_nonce()` and embed
 
 ## YouTube API key isolation via server-side sessions
 
-When the YouTube feed is used in "unlimited" mode (`max="all"` or `max=""`), the plugin creates a server-side session stored as a WordPress transient. The API key is saved inside that transient under the key `esquina_yt_s_{uuid}`, where `{uuid}` is a randomly generated UUID.
+When the YouTube feed is used in "unlimited" mode (`max="all"` or `max=""`), the plugin creates a server-side session stored as a WordPress transient. The API key, channel ID, and mode are saved in a transient keyed `esquina_yt_s_{uuid}`, where `{uuid}` is a randomly generated UUID. A companion transient — `esquina_yt_seen_{uuid}` — tracks the IDs of videos already delivered to that visitor, ensuring each AJAX "load more" request skips videos already shown.
 
 The browser receives only the UUID session identifier — the API key itself is never included in the rendered HTML, in `data-*` attributes, or in any AJAX response. This means that even if a visitor inspects the page source or monitors network traffic, they will not see your YouTube API key.
 
 <Note>
-  The session transient expires after 1 hour. If a visitor leaves the "load more" button idle for longer than that, the next click will return a session-expired error, but no credential will ever be exposed.
+  Both the session transient (`esquina_yt_s_{uuid}`) and the seen-IDs transient (`esquina_yt_seen_{uuid}`) expire after 1 hour. If a visitor leaves the "load more" button idle for longer than that, the next click will return a session-expired error, but no credential will ever be exposed.
 </Note>
 
 ## Facebook token isolation
